@@ -1,10 +1,10 @@
 import { operationStats } from "./cache-var";
 import { CacheMetrics, CacheStats } from "./types";
 
-export const MAX_HISTORY = 99999999;
+export const MAX_HISTORY = 9999;
 
 export class CacheStatsManager {
-  public static hit(operation: string, time: number) {
+  public static hit(operation: string, time: number): void {
     let stats = operationStats.get(operation);
 
     if (!stats) {
@@ -20,7 +20,7 @@ export class CacheStatsManager {
     CacheStatsManager.updateHits(stats, time);
   }
 
-  public static miss(operation: string, time: number) {
+  public static miss(operation: string, time: number): void {
     let stats = operationStats.get(operation);
 
     if (!stats) {
@@ -52,18 +52,23 @@ export class CacheStatsManager {
     stats.misses++;
   }
 
-  public static getOperationStats(operation: string): CacheMetrics | undefined {
-    let stats = operationStats.get(operation);
+  public static getOperationData(operation: string): CacheStats | undefined {
+    return operationStats.get(operation);
+  }
+
+  public static getOperationStats(
+    operation: string,
+    source?: Map<string, CacheStats>
+  ): CacheMetrics | undefined {
+    const stats = source
+      ? source.get(operation)
+      : operationStats.get(operation);
 
     if (stats) {
       const total = stats.hits + stats.misses;
-      let averageTimeSaved =
-        stats.averageMissTime -
-        stats.averageMissTime * (stats.misses / total) -
-        stats.averageHitTime * (stats.hits / total);
-
-      if (averageTimeSaved < 0) {
-        averageTimeSaved = 0;
+      let value = stats.hits * (stats.averageMissTime - stats.averageHitTime);
+      if (value < 0) {
+        value = 0;
       }
 
       const divider =
@@ -77,8 +82,41 @@ export class CacheStatsManager {
           stats.averageHitTime === 0
             ? 0
             : stats.averageMissTime / stats.averageHitTime,
-        timeSavedRatio: (total * averageTimeSaved) / divider,
+        processingRatio: value / divider,
+        timeSavedRatio:
+          stats.averageMissTime === 0 || stats.hits + stats.misses === 0
+            ? 0
+            : (stats.hits * (stats.averageMissTime - stats.averageHitTime)) /
+              (stats.averageMissTime * (stats.hits + stats.misses)),
       };
     }
+  }
+
+  public static getOperations(): string[] {
+    const output: string[] = [];
+
+    operationStats.forEach((_values: CacheStats, key: string) => {
+      output.push(key);
+    });
+
+    return output;
+  }
+
+  public static operationStatsString(
+    operation: string,
+    source?: Map<string, CacheStats>
+  ): string {
+    const output: string[] = [];
+    const stats = CacheStatsManager.getOperationStats(operation, source);
+
+    if (!stats) {
+      return "";
+    }
+
+    output.push(
+      `Operation ${operation} Cache Metrics:\n\tHit Ratio:        ${stats.hitRatio}\n\tPerformance Gain: x${stats.performanceGain}\n\tProcessing Ratio: ${stats.processingRatio}\n\tTime Saved Ratio: ${stats.timeSavedRatio}`
+    );
+
+    return output.join("\n");
   }
 }

@@ -11,6 +11,7 @@ describe("CacheStatsManager", () => {
       operation,
       hitRatio: 1,
       performanceGain: 0,
+      processingRatio: 0,
       timeSavedRatio: 0,
     });
   });
@@ -23,6 +24,7 @@ describe("CacheStatsManager", () => {
       operation,
       hitRatio: 0,
       performanceGain: 0,
+      processingRatio: 0,
       timeSavedRatio: 0,
     });
   });
@@ -35,6 +37,7 @@ describe("CacheStatsManager", () => {
       operation,
       hitRatio: 0,
       performanceGain: 0,
+      processingRatio: 0,
       timeSavedRatio: 0,
     });
   });
@@ -58,8 +61,9 @@ describe("CacheStatsManager", () => {
     expect(CacheStatsManager.getOperationStats(operation)).toStrictEqual({
       operation,
       hitRatio: 0.5,
-      performanceGain: 59999.99701500012,
-      timeSavedRatio: 0.9999666672205547,
+      performanceGain: 59970.161935225915,
+      processingRatio: 0.9999666506378158,
+      timeSavedRatio: 0.4999916625204291,
     });
   });
 
@@ -77,7 +81,8 @@ describe("CacheStatsManager", () => {
           operation,
           hitRatio: 0.5,
           performanceGain: 300,
-          timeSavedRatio: 0.9933554817275747,
+          processingRatio: 0.9933554817275747,
+          timeSavedRatio: 0.49833333333333335,
         },
       ],
       [
@@ -91,7 +96,8 @@ describe("CacheStatsManager", () => {
           operation,
           hitRatio: 0.95,
           performanceGain: 2,
-          timeSavedRatio: 0.9047619047619048,
+          processingRatio: 0.9047619047619048,
+          timeSavedRatio: 0.475,
         },
       ],
       [
@@ -105,7 +111,8 @@ describe("CacheStatsManager", () => {
           operation,
           hitRatio: 0.8,
           performanceGain: 2,
-          timeSavedRatio: 0.6666666666666666,
+          processingRatio: 0.6666666666666666,
+          timeSavedRatio: 0.4,
         },
       ],
       [
@@ -119,7 +126,8 @@ describe("CacheStatsManager", () => {
           operation,
           hitRatio: 0.95,
           performanceGain: 6,
-          timeSavedRatio: 3.8,
+          processingRatio: 3.8,
+          timeSavedRatio: 0.7916666666666666,
         },
       ],
     ];
