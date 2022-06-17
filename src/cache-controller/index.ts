@@ -1,2 +1,2 @@
 export * from "./controller-interface";
-export * from "./redis";
+export * from "./redis-cache-controller";

@@ -4,7 +4,8 @@ import { CacheStats } from "../../../src/metrics/types";
 
 const redisController = new RedisCacheController(
   "reliable-caching",
-  new Redis()
+  new Redis(),
+  () => true // termination function
 );
 
 function generateRandomCacheData() {

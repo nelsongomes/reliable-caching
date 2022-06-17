@@ -65,6 +65,15 @@ describe("CacheStatsManager", () => {
       processingRatio: 0.9999666506378158,
       timeSavedRatio: 0.4999916625204291,
     });
+    expect(CacheStatsManager.getOperations()).toStrictEqual([operation]);
+    expect(CacheStatsManager.operationStatsString(operation)).toMatchSnapshot();
+    expect(CacheStatsManager.getOperationData(operation)).toStrictEqual({
+      averageHitTime: 1.0004,
+      averageMissTime: 59994.15,
+      hits: 10001,
+      misses: 10001,
+    });
+    expect(CacheStatsManager.operationStatsString("nonexistent")).toBe("");
   });
 
   it("Should match manually calculated math", async () => {
@@ -142,5 +151,21 @@ describe("CacheStatsManager", () => {
         outcome
       );
     });
+  });
+
+  it("Should work with other sources of data", async () => {
+    const operation = "query-f";
+
+    expect(
+      CacheStatsManager.operationStatsString(
+        operation,
+        new Map([
+          [
+            operation,
+            { averageHitTime: 1, averageMissTime: 1, hits: 1, misses: 1 },
+          ],
+        ])
+      )
+    ).toMatchSnapshot();
   });
 });

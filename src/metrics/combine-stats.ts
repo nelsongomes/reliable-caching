@@ -33,8 +33,10 @@ export class CombineStatsManager {
     this.combinedStats = new Map();
 
     finalStats.forEach((stats: CacheStats) => {
-      stats.averageHitTime = stats.averageHitTime / stats.hits;
-      stats.averageMissTime = stats.averageMissTime / stats.misses;
+      stats.averageHitTime =
+        stats.hits > 0 ? stats.averageHitTime / stats.hits : 0;
+      stats.averageMissTime =
+        stats.misses > 0 ? stats.averageMissTime / stats.misses : 0;
     });
 
     return finalStats;

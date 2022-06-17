@@ -16,12 +16,12 @@ export class RedisCacheController implements ICacheController {
   private sub;
   private combinedStats: CombineStatsManager | undefined;
 
-  constructor(streamId: string, redis: Redis) {
+  constructor(streamId: string, redis: Redis, check: () => boolean) {
     this.streamId = streamId;
     this.pub = redis;
     this.sub = redis.duplicate(); // make a new independent connection for subscriber connection
 
-    this.listenForMessage();
+    this.listenForMessage(check);
   }
 
   async sendCacheStats(requester: string): Promise<void> {
@@ -40,13 +40,13 @@ export class RedisCacheController implements ICacheController {
 
       await this.pub.xadd(this.streamId, "*", "data", JSON.stringify(payload));
     }
-    console.log("Instance %s requested all cache stats", requester);
+    // console.log("Instance %s requested all cache stats", requester);
   }
 
   async requestCacheStats(
     timeoutSeconds = 3
   ): Promise<Map<string, CacheStats>> {
-    if (this.combinedStats) {
+    if (this.combinedStats !== undefined) {
       throw new Error("Can't start a new request until previous ends.");
     }
 
@@ -71,11 +71,10 @@ export class RedisCacheController implements ICacheController {
     return output;
   }
 
-  async listenForMessage(): Promise<void> {
+  async listenForMessage(repeat: () => boolean): Promise<void> {
     let lastId = "$";
 
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
+    do {
       const results = await this.sub.xread(
         "BLOCK",
         0,
@@ -87,16 +86,18 @@ export class RedisCacheController implements ICacheController {
       if (results) {
         const [key, messages] = results[0];
 
-        messages.forEach(([id, data]) => {
+        for (const message of messages) {
+          const [id, data] = message;
+
           if (key === this.streamId) {
-            this.processMessage(JSON.parse(data[1]));
+            await this.processMessage(JSON.parse(data[1]));
           }
 
           // update stream position
           lastId = id;
-        });
+        }
       }
-    }
+    } while (repeat());
   }
 
   async processMessage(message: Operations): Promise<void> {
@@ -113,13 +114,10 @@ export class RedisCacheController implements ICacheController {
           const { operation, stats } = message.data;
 
           this.combinedStats.combineStats(operation, stats);
-          console.log("  --> Received %s", JSON.stringify(message));
+          // console.log("  --> Received %s", JSON.stringify(message));
         }
 
         break;
-
-      default:
-        console.log("Unknown message: %s", message);
     }
   }
 }
