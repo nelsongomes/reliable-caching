@@ -16,6 +16,12 @@ export class RedisCacheController implements ICacheController {
   private sub;
   private combinedStats: CombineStatsManager | undefined;
 
+  /**
+   *
+   * @param streamId Redis stream name
+   * @param redis A Redis instance, properly configured for your infrastructure
+   * @param check A function that returns true while instance is running
+   */
   constructor(streamId: string, redis: Redis, check: () => boolean) {
     this.streamId = streamId;
     this.pub = redis;

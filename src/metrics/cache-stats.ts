@@ -4,6 +4,11 @@ import { CacheMetrics, CacheStats } from "./types";
 export const MAX_HISTORY = 9999;
 
 export class CacheStatsManager {
+  /**
+   * Method to store hit statistics
+   * @param operation operation identifier
+   * @param time time spent generating this hit, usually in milliseconds
+   */
   public static hit(operation: string, time: number): void {
     let stats = operationStats.get(operation);
 
@@ -20,6 +25,11 @@ export class CacheStatsManager {
     CacheStatsManager.updateHits(stats, time);
   }
 
+  /**
+   * Method to store miss statistics
+   * @param operation operation identifier
+   * @param time time spent generating this miss, usually in milliseconds
+   */
   public static miss(operation: string, time: number): void {
     let stats = operationStats.get(operation);
 
@@ -102,6 +112,12 @@ export class CacheStatsManager {
     return output;
   }
 
+  /**
+   * Returns a printable string with operation information
+   * @param operation operation identifier
+   * @param source an optional alternative source of data
+   * @returns string with operation information if found or empty string
+   */
   public static operationStatsString(
     operation: string,
     source?: Map<string, CacheStats>

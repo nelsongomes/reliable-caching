@@ -16,11 +16,7 @@ async function testCacheMetrics() {
   CacheStatsManager.hit("get-customer", getDeltaMilliseconds(startHit, now()));
 
   const operationStats = CacheStatsManager.operationStatsString("get-customer");
-  console.log(
-    operationStats
-      ? CacheStatsManager.operationStatsString("get-customer").toString()
-      : ""
-  );
+  console.log(operationStats);
 }
 
 testCacheMetrics();

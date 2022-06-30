@@ -38,7 +38,7 @@
   "dependencies": {
     "ioredis": "5.0.6",
     "simdjson": "0.9.2",
-    "ts-timeframe": "file:../ts-timeframe"
+    "ts-timeframe": "0.4.1"
   },
   "devDependencies": {
     "@types/jest": "26.0.23",

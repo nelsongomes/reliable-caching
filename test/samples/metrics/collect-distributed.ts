@@ -1,13 +1,17 @@
 import Redis from "ioredis";
-import { CacheStatsManager, RedisCacheController } from "../../../src";
-import { CacheStats } from "../../../src/metrics/types";
+import {
+  CacheStatsManager,
+  RedisCacheController,
+  CacheStats,
+} from "../../../src";
 
 const redisController = new RedisCacheController(
   "reliable-caching",
   new Redis(),
-  () => true // termination function
+  () => true // termination function, you can check if your instance is shutting down in this function
 );
 
+// this is only needed to generated some data
 function generateRandomCacheData() {
   const operations = ["operation1", "operation2", "operation3"];
   const operation = operations[Math.floor(Math.random() * 3)];
@@ -22,7 +26,7 @@ function generateRandomCacheData() {
 }
 
 setInterval(async () => {
-  generateRandomCacheData();
+  generateRandomCacheData(); // only needed for demo
 
   const combinedStats = await redisController.requestCacheStats();
 
@@ -31,4 +35,23 @@ setInterval(async () => {
   });
 }, 5000); // you should not run this too frequently because all instances may do this, run it once per minute or so
 
-// docker run --name collect-metrics-redis -p 6379:6379 -d redis
+// you may need to run a redis server: docker run --name collect-metrics-redis -p 6379:6379 -d redis
+
+// outputs:
+/*
+Operation operation1 Cache Metrics:
+	Hit Ratio:        0.7258064516129032
+	Performance Gain: x23.031392063368585
+	Processing Ratio: 2.27110237345866
+	Time Saved Ratio: 0.6942926616684693
+Operation operation2 Cache Metrics:
+	Hit Ratio:        0.6415094339622641
+	Performance Gain: x28.022145511955095
+	Processing Ratio: 1.6220326030050292
+	Time Saved Ratio: 0.6186164890345256
+Operation operation3 Cache Metrics:
+	Hit Ratio:        0.5675675675675675
+	Performance Gain: x34.91330751543888
+	Processing Ratio: 1.22871563580863
+	Time Saved Ratio: 0.5513110852129072
+  */

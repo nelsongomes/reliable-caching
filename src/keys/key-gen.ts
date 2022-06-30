@@ -21,6 +21,11 @@ type ParameterTypes = {
 };
 
 export class KeyGenerator {
+  /**
+   * Method to generate a function that generates cache keys.
+   * @param param0 cache function options
+   * @returns function to generate cache keys
+   */
   public static keyFactory<T extends ParameterTypes>({
     schemaVersion = 1,
     operation,
