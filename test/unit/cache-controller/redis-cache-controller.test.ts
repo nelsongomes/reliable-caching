@@ -23,7 +23,7 @@ describe("RedisCacheController", () => {
       return redis;
     });
 
-    new RedisCacheController("stream", redis, () => false);
+    new RedisCacheController({ streamId: "stream", redis, check: () => false });
 
     // we duplicate redis instance to have one connection reading messages and another publishing
     expect(redis.duplicate).toBeCalled();
@@ -37,11 +37,11 @@ describe("RedisCacheController", () => {
       return redis;
     });
 
-    const cacheController = new RedisCacheController(
-      "stream",
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
       redis,
-      () => false
-    );
+      check: () => false,
+    });
 
     // storing promise, putting it running in bg
     const requestPromise = cacheController.requestCacheStats(1); // no await on purpose, for not blocking
@@ -61,11 +61,11 @@ describe("RedisCacheController", () => {
       return redis;
     });
 
-    const cacheController = new RedisCacheController(
-      "stream",
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
       redis,
-      () => false
-    );
+      check: () => false,
+    });
 
     const second = await cacheController.requestCacheStats(0);
 
@@ -91,11 +91,11 @@ describe("RedisCacheController", () => {
     CacheStatsManager.miss("operation1", 10);
     CacheStatsManager.miss("operation2", 10);
 
-    const cacheController = new RedisCacheController(
-      "stream",
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
       redis,
-      () => false
-    );
+      check: () => false,
+    });
 
     await cacheController.listenForMessage(() => false);
 
@@ -126,11 +126,11 @@ describe("RedisCacheController", () => {
       return [["stream", [["id", ["?", JSON.stringify(request)]]]]];
     }) as any;
 
-    const cacheController = new RedisCacheController(
-      "stream",
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
       redis,
-      () => false
-    );
+      check: () => false,
+    });
 
     // this initializes combine manager
     await cacheController.requestCacheStats();
