@@ -1,9 +1,12 @@
 import Redis from "ioredis";
 import {
+  BroadcastCacheKeyRequest,
   CacheStatsManager,
   CollectDataReply,
   CollectDataRequest,
   CombineStatsManager,
+  EvictionKeyRequest,
+  LruInMemoryStorage,
   Operation,
   RedisCacheController,
 } from "../../../src";
@@ -85,6 +88,7 @@ describe("RedisCacheController", () => {
       };
 
       return [["stream", [["id", ["?", JSON.stringify(request)]]]]];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any;
 
     // generate some data
@@ -124,6 +128,7 @@ describe("RedisCacheController", () => {
       };
 
       return [["stream", [["id", ["?", JSON.stringify(request)]]]]];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any;
 
     const cacheController = new RedisCacheController({
@@ -139,5 +144,216 @@ describe("RedisCacheController", () => {
 
     // it calls 2 times because constructor already calls listenForMessage
     expect(redis.xread).toBeCalledTimes(2);
+  });
+
+  it("Should receive and drop a key on request, but not call storage because storage is not defined", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.xread = jest.fn(() => {
+      const request: EvictionKeyRequest = {
+        type: Operation.EvictKey,
+        data: {
+          key: "dropme",
+        },
+        requester: CombineStatsManager.getInstanceKey(),
+      };
+
+      return [["stream", [["id", ["?", JSON.stringify(request)]]]]];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any;
+
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+    });
+
+    await cacheController.listenForMessage(() => false);
+
+    // it calls 2 times because constructor already calls listenForMessage
+    expect(redis.xread).toBeCalledTimes(2);
+  });
+
+  it("Should receive and drop a key on request, but call storage eviction", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.xread = jest.fn(() => {
+      const request: EvictionKeyRequest = {
+        type: Operation.EvictKey,
+        data: {
+          key: "dropme",
+        },
+        requester: "12345", // must be different from current instance id
+      };
+
+      return [["stream", [["id", ["?", JSON.stringify(request)]]]]];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any;
+
+    const storage = new LruInMemoryStorage({ max: 50 });
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+      storage,
+    });
+
+    await cacheController.listenForMessage(() => false);
+
+    // it calls 2 times because constructor already calls listenForMessage
+    expect(redis.xread).toBeCalledTimes(2);
+  });
+
+  it("Should send cache key storage request", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+    });
+
+    await cacheController.broadcastCacheKey("evictme", 100, { value: 123 });
+
+    expect(redis.xadd).toBeCalledWith(
+      "stream",
+      "*",
+      "data",
+      '{"type":"set-key","data":{"key":"evictme","ttlMilliseconds":100,"value":{"value":123}}}'
+    );
+  });
+
+  it("Should fail gracefully if broadcast key fails", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.xadd = jest.fn(async () => {
+      throw new Error("fail");
+    });
+
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+    });
+
+    await cacheController.broadcastCacheKey("evictme", 100, { value: 123 });
+
+    expect(redis.xadd).toBeCalledWith(
+      "stream",
+      "*",
+      "data",
+      '{"type":"set-key","data":{"key":"evictme","ttlMilliseconds":100,"value":{"value":123}}}'
+    );
+  });
+
+  it("Should receive cache key storage request, but not call storage because storage is not defined", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.xread = jest.fn(() => {
+      const request: BroadcastCacheKeyRequest = {
+        type: Operation.BroadcastKey,
+        data: {
+          key: "storeme",
+          ttlMilliseconds: 100,
+          value: "value",
+        },
+      };
+
+      return [["stream", [["id", ["?", JSON.stringify(request)]]]]];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any;
+
+    const storage = new LruInMemoryStorage({ max: 50 });
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+      storage,
+    });
+
+    await cacheController.listenForMessage(() => false);
+
+    // it calls 2 times because constructor already calls listenForMessage
+    expect(redis.xread).toBeCalledTimes(2);
+  });
+
+  it("Should request remote cache key eviction", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+    });
+
+    await cacheController.requestCacheKeyEviction("evictme");
+
+    expect(redis.xadd).toBeCalledWith(
+      "stream",
+      "*",
+      "data",
+      expect.stringMatching(
+        '{"type":"evict-key","data":{"key":"evictme"},"requester":"[a-f0-9-]+"}'
+      )
+    );
+  });
+
+  it("Should fail gracefully is eviction request fails", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.xadd = jest.fn(async () => {
+      throw new Error("fail");
+    });
+
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+    });
+
+    await cacheController.requestCacheKeyEviction("evictme");
+
+    expect(redis.xadd).toBeCalledWith(
+      "stream",
+      "*",
+      "data",
+      expect.stringMatching(
+        '{"type":"evict-key","data":{"key":"evictme"},"requester":"[a-f0-9-]+"}'
+      )
+    );
+  });
+
+  it("Should call redis on close", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.disconnect = jest.fn();
+
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+    });
+
+    await cacheController.close();
+
+    expect(redis.disconnect).toBeCalledTimes(2);
   });
 });

@@ -23,11 +23,12 @@ export class LruInMemoryStorage implements ICacheStorage {
 
   /**
    * Sets cache key
-   * @param key
-   * @param value
+   * @param key key to be set
+   * @param ttlMilliseconds milliseconds to keep in cache
+   * @param value value to store
    */
-  async set<T>(key: string, value: T): Promise<void> {
-    this.cache.set(key, value);
+  async set<T>(key: string, ttlMilliseconds: number, value: T): Promise<void> {
+    this.cache.set(key, value, { ttl: ttlMilliseconds });
   }
 
   /**
