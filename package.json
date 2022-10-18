@@ -1,67 +1,81 @@
 {
-	"name": "typescript-template",
-	"description": "Typescript template",
-	"author": "Nelson Gomes <nelson.ricardo.gomes@gmail.com>",
-	"version": "0.0.0",
-	"license": "SEE LICENSE IN LICENSE.md",
-	"repository": {
-		"type": "git",
-		"url": "git+https://github.com/nelsongomes/typescript-template.git"
-	},
-	"bugs": {
-		"url": "https://github.com/nelsongomes/typescript-template/issues"
-	},
-	"homepage": "https://github.com/nelsongomes/typescript-template",
-	"keywords": [
-		"fastify"
-	],
-	"engines": {
-		"node": ">=16"
-	},
-	"main": "dist/index.js",
-	"files": [
-		"dist/*",
-		"src/*"
-	],
-	"scripts": {
-		"build": "tsc",
-		"build:watch": "tsc --watch",
-		"test": "jest",
-		"coverage": "jest --coverage",
-		"format": "prettier --write .",
-		"lint": "eslint .",
-		"lint-staged": "lint-staged",
-		"changelog-check": "npx changelog-updater --check",
-		"preversion": "npx changelog-updater --check",
-		"version": "npx changelog-updater && git add CHANGELOG.md"
-	},
-	"dependencies": {
-	},
-	"devDependencies": {
-		"@types/jest": "26.0.23",
-		"@types/node": "16.x",
-		"@typescript-eslint/eslint-plugin": "4.22.1",
-		"@typescript-eslint/parser": "4.22.1",
-		"eslint": "7.25.0",
-		"eslint-config-prettier": "8.3.0",
-		"eslint-plugin-jest": "24.3.6",
-		"jest": "26.6.3",
-		"lint-staged": "10.5.4",
-		"pre-commit": "1.2.2",
-		"prettier": "2.2.1",
-		"ts-jest": "26.5.6",
-		"typescript": "4.2.4"
-	},
-	"lint-staged": {
-		"*.{ts,js,json,md,yml}": [
-			"prettier --write"
-		],
-		"*.{ts,js}": [
-			"eslint --fix"
-		]
-	},
-	"pre-commit": [
-		"lint-staged",
-		"test"
-	]
+  "name": "reliable-caching",
+  "description": "Typescript template",
+  "author": "Nelson Gomes <nelson.ricardo.gomes@gmail.com>",
+  "version": "0.1.0",
+  "license": "SEE LICENSE IN LICENSE.md",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nelsongomes/reliable-caching.git"
+  },
+  "bugs": {
+    "url": "https://github.com/nelsongomes/reliable-caching/issues"
+  },
+  "homepage": "https://github.com/nelsongomes/reliable-caching",
+  "keywords": [
+    "node",
+    "cache",
+    "caching",
+    "reliable",
+    "hit-ratio"
+  ],
+  "engines": {
+    "node": ">=16"
+  },
+  "main": "dist/index.js",
+  "files": [
+    "dist/*",
+    "src/*"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "test": "jest",
+    "coverage": "jest --coverage",
+    "format": "prettier --write .",
+    "lint": "eslint .",
+    "lint-staged": "lint-staged",
+    "changelog-check": "npx changelog-updater --check",
+    "preversion": "npx changelog-updater --check",
+    "version": "npx changelog-updater && git add CHANGELOG.md",
+    "release": "release-it",
+    "release-dry-run": "release-it --dry-run",
+    "docs": "typedoc --out docs src"
+  },
+  "dependencies": {
+    "immutable": "4.1.0",
+    "ioredis": "5.0.6",
+    "lru-cache": "7.12.0",
+    "ts-timeframe": "0.4.1"
+  },
+  "devDependencies": {
+    "@types/jest": "26.0.23",
+    "@types/lru-cache": "7.10.10",
+    "@types/node": "16.x",
+    "@typescript-eslint/eslint-plugin": "4.22.1",
+    "@typescript-eslint/parser": "4.22.1",
+    "eslint": "7.25.0",
+    "eslint-config-prettier": "8.3.0",
+    "eslint-plugin-jest": "24.3.6",
+    "jest": "26.6.3",
+    "lint-staged": "10.5.4",
+    "pre-commit": "1.2.2",
+    "prettier": "2.2.1",
+    "release-it": "15.5.0",
+    "ts-jest": "26.5.6",
+    "typedoc": "0.23.17",
+    "typescript": "4.7.4"
+  },
+  "lint-staged": {
+    "*.{ts,js,json,md,yml}": [
+      "prettier --write"
+    ],
+    "*.{ts,js}": [
+      "eslint --fix"
+    ]
+  },
+  "pre-commit": [
+    "lint-staged",
+    "test"
+  ]
 }

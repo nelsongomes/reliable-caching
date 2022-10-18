@@ -7,13 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2022-10-18
+
 ### Added
 
--   Initial release
+- Initial release
 
 <!---
 When fixing merge conflicts below, make sure you do it correctly.
 Top line must have "unreleased" label and range from latest version to HEAD.
 --->
 <!-- prettier-ignore -->
-[Unreleased]: https://github.com/nelsongomes/typescript-template/compare/v0.0.0...HEAD
+[Unreleased]: https://github.com/nelsongomes/typescript-template/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/nelsongomes/typescript-template/compare/v0.0.0...v0.1.0
