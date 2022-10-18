@@ -2,7 +2,7 @@
   "name": "reliable-caching",
   "description": "Typescript template",
   "author": "Nelson Gomes <nelson.ricardo.gomes@gmail.com>",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "license": "SEE LICENSE IN LICENSE.md",
   "repository": {
     "type": "git",
