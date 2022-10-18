@@ -62,11 +62,9 @@ Map(2) {
 Operation get-customer Cache Metrics:
 	Hit Ratio:        0.7692307692307693
 	Performance Gain: x22.222222222222225
-	Processing Ratio: 2.768115942028986
-	Time Saved Ratio: 0.7346153846153847
+	Time-saved Ratio: 0.7346153846153847
 Operation settings Cache Metrics:
 	Hit Ratio:        0.7931034482758621
 	Performance Gain: x10.543412264723738
-	Processing Ratio: 2.544600938967136
-	Time Saved Ratio: 0.7178807947019867
+	Time-saved Ratio: 0.7178807947019867
 */

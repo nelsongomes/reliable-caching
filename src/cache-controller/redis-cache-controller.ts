@@ -1,5 +1,6 @@
 import Redis from "ioredis";
 import { delay } from "ts-timeframe";
+import { logHandle, LogLevel } from "../logging";
 import { CacheStatsManager, CombineStatsManager } from "../metrics";
 import { CacheStats } from "../metrics/types";
 import { ICacheStorage } from "../storage/storage-interface";
@@ -20,29 +21,37 @@ export class RedisCacheController implements ICacheController {
   private combinedStats: CombineStatsManager | undefined;
   private storage: ICacheStorage | undefined;
   private closing: boolean;
+  private log: logHandle;
 
   constructor({
     streamId,
     redis,
     check,
     storage,
+    log = () => {
+      return;
+    },
   }: {
     streamId: string;
     redis: Redis;
     check: () => boolean;
     storage?: ICacheStorage;
+    log?: logHandle;
   }) {
     this.streamId = streamId;
     this.pub = redis;
     this.sub = redis.duplicate(); // make a new independent connection for subscriber connection
     this.storage = storage;
     this.closing = false;
+    this.log = log;
 
     this.listenForMessage(check);
   }
 
   async evictCacheKey(key: string): Promise<void> {
     if (this.storage) {
+      this.log(LogLevel.Debug, `Evicting key ${key}`);
+
       // pass instruction for storage removal
       await this.storage.evict(key);
     }
@@ -51,10 +60,12 @@ export class RedisCacheController implements ICacheController {
   async storeCacheKey(
     key: string,
     ttlMilliseconds: number,
-    // eslint-disable-next-line @typescript-eslint/explicit-module-boundary-types
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
     value: any
   ): Promise<void> {
     if (this.storage) {
+      this.log(LogLevel.Debug, `Storing key ${key} for ${ttlMilliseconds}ms`);
+
       // pass instruction for storage
       await this.storage.set(key, ttlMilliseconds, value);
     }
@@ -62,6 +73,8 @@ export class RedisCacheController implements ICacheController {
 
   async sendCacheStats(requester: string): Promise<void> {
     const operations = CacheStatsManager.getOperations();
+
+    this.log(LogLevel.Debug, `Sending cache stats for requester ${requester}`);
 
     for (const operation of operations) {
       const payload: CollectDataReply = {
@@ -76,12 +89,9 @@ export class RedisCacheController implements ICacheController {
 
       await this.pub.xadd(this.streamId, "*", "data", JSON.stringify(payload));
     }
-    // console.log("Instance %s requested all cache stats", requester);
   }
 
-  async requestCacheStats(
-    timeoutSeconds = 3
-  ): Promise<Map<string, CacheStats>> {
+  async requestCacheStats(timeoutMs = 3000): Promise<Map<string, CacheStats>> {
     if (this.combinedStats !== undefined) {
       throw new Error("Can't start a new request until previous ends.");
     }
@@ -96,7 +106,7 @@ export class RedisCacheController implements ICacheController {
     await this.pub.xadd(this.streamId, "*", "data", JSON.stringify(message));
 
     // wait for responses to come
-    await delay(timeoutSeconds * 1000);
+    await delay(timeoutMs);
 
     // finalize data
     const output = this.combinedStats.finalizeCombinedStats();
@@ -134,9 +144,10 @@ export class RedisCacheController implements ICacheController {
             lastId = id;
           }
         }
-      } catch (e) {
+      } catch (e: unknown) {
+        this.log(LogLevel.Error, `Failed to process message`, e);
+
         await delay(200);
-        // console.log(e)
       }
     } while (repeat() && !this.closing);
   }
@@ -153,17 +164,29 @@ export class RedisCacheController implements ICacheController {
         ) {
           const { operation, stats } = message.data;
 
+          this.log(
+            LogLevel.Debug,
+            `Received stats message: ${JSON.stringify(message)}`
+          );
           this.combinedStats.combineStats(operation, stats);
-          // console.log("  --> Received %s", JSON.stringify(message));
         }
         break;
       case Operation.EvictKey:
         // we only accept other's eviction calls
         if (message.requester !== CombineStatsManager.getInstanceKey()) {
+          this.log(
+            LogLevel.Debug,
+            `Received eviction request for key: ${message.data.key}`
+          );
+
           await this.evictCacheKey(message.data.key);
         }
         break;
       case Operation.BroadcastKey:
+        this.log(
+          LogLevel.Debug,
+          `Received content for key: ${message.data.key} for ${message.data.ttlMilliseconds}ms`
+        );
         await this.storeCacheKey(
           message.data.key,
           message.data.ttlMilliseconds,
@@ -183,8 +206,11 @@ export class RedisCacheController implements ICacheController {
     try {
       await this.pub.xadd(this.streamId, "*", "data", JSON.stringify(message));
     } catch (e) {
-      // TODO
-      console.log(e);
+      this.log(
+        LogLevel.Error,
+        `Failed to send cache eviction request for key: ${key}`,
+        e
+      );
     }
   }
 
@@ -203,12 +229,17 @@ export class RedisCacheController implements ICacheController {
     try {
       await this.pub.xadd(this.streamId, "*", "data", JSON.stringify(message));
     } catch (e) {
-      // TODO
-      console.log(e);
+      this.log(
+        LogLevel.Error,
+        `Failed to send cache broadcast request for key: ${key}`,
+        e
+      );
     }
   }
 
   async close(): Promise<void> {
+    this.log(LogLevel.Info, `Controller is closing`);
+
     this.closing = true;
     this.pub.disconnect();
     this.sub.disconnect();

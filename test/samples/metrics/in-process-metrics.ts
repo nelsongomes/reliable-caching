@@ -1,5 +1,5 @@
-import { getDeltaMilliseconds, now } from "ts-timeframe";
-import { CacheStatsManager, delay } from "../../../src";
+import { delay, getDeltaMilliseconds, now } from "ts-timeframe";
+import { CacheStatsManager } from "../../../src";
 
 async function testCacheMetrics() {
   // let's simulate a miss
@@ -25,6 +25,5 @@ testCacheMetrics();
 Operation get-customer Cache Metrics:
 	Hit Ratio:        0.5
 	Performance Gain: x5.172733007436766
-	Processing Ratio: 0.6759944099978977
-	Time Saved Ratio: 0.4033392987263876
+	Time-saved Ratio: 0.4033392987263876
 */

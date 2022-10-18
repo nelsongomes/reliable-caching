@@ -5,11 +5,11 @@ import {
   CacheStats,
 } from "../../../src";
 
-const redisController = new RedisCacheController(
-  "reliable-caching",
-  new Redis(),
-  () => true // termination function, you can check if your instance is shutting down in this function
-);
+const redisController = new RedisCacheController({
+  streamId: "reliable-caching",
+  redis: new Redis(),
+  check: () => true, // termination function, you can check if your instance is shutting down in this function
+});
 
 // this is only needed to generated some data
 function generateRandomCacheData() {
@@ -42,16 +42,13 @@ setInterval(async () => {
 Operation operation1 Cache Metrics:
 	Hit Ratio:        0.7258064516129032
 	Performance Gain: x23.031392063368585
-	Processing Ratio: 2.27110237345866
-	Time Saved Ratio: 0.6942926616684693
+	Time-saved Ratio: 0.6942926616684693
 Operation operation2 Cache Metrics:
 	Hit Ratio:        0.6415094339622641
 	Performance Gain: x28.022145511955095
-	Processing Ratio: 1.6220326030050292
-	Time Saved Ratio: 0.6186164890345256
+	Time-saved Ratio: 0.6186164890345256
 Operation operation3 Cache Metrics:
 	Hit Ratio:        0.5675675675675675
 	Performance Gain: x34.91330751543888
-	Processing Ratio: 1.22871563580863
-	Time Saved Ratio: 0.5513110852129072
+	Time-saved Ratio: 0.5513110852129072
   */

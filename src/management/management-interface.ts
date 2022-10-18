@@ -1,3 +1,5 @@
+import { logHandle } from "../logging";
+
 export enum ConcurrencyControl {
   None = "none",
   Local = "local",
@@ -7,6 +9,7 @@ export enum ConcurrencyControl {
 export type ManagementOptions = {
   broadcast?: boolean;
   concurrency?: ConcurrencyControl;
+  log?: logHandle;
 };
 
 export interface IManagement {

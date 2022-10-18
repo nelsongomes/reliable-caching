@@ -1,5 +1,6 @@
 import { getDeltaMilliseconds, now } from "ts-timeframe";
 import { ICacheController } from "../cache-controller";
+import { logHandle, LogLevel } from "../logging";
 import { CacheStatsManager } from "../metrics";
 import { ICacheStorage } from "../storage/storage-interface";
 import {
@@ -11,12 +12,16 @@ import {
 const DEFAULTS: ManagementOptions = {
   broadcast: true,
   concurrency: ConcurrencyControl.Local,
+  log: () => {
+    return;
+  },
 };
 
 export class GenericManager implements IManagement {
   private controller: ICacheController;
   private storage: ICacheStorage;
   private options: ManagementOptions;
+  private log: logHandle = DEFAULTS.log as logHandle;
 
   constructor(
     controller: ICacheController,
@@ -26,6 +31,10 @@ export class GenericManager implements IManagement {
     this.controller = controller;
     this.storage = storage;
     this.options = { ...DEFAULTS, ...options };
+
+    if (this.options && this.options.log) {
+      this.log = this.options.log;
+    }
   }
 
   /**
@@ -45,6 +54,7 @@ export class GenericManager implements IManagement {
     cacheRetrieval: (key: string, ...innerArgs: P) => Promise<Awaited<R>>;
     cacheEvict: (key: string) => Promise<void>;
   } {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const operationRegistry = new Map<string, any[]>();
 
     const cacheRetrieval = async (
@@ -64,8 +74,7 @@ export class GenericManager implements IManagement {
           return cacheContent;
         }
       } catch (e) {
-        // TODO
-        // do nothing
+        this.log(LogLevel.Error, `Failed to get key ${key} from cache`, e);
       }
 
       // if we reach this point it means either an exception occurred or we don't have any content in cache
@@ -89,6 +98,7 @@ export class GenericManager implements IManagement {
               const startCacheAwait = now();
 
               keyRegistry.push([
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 (value: any) => {
                   CacheStatsManager.miss(
                     operation,
@@ -151,6 +161,7 @@ export class GenericManager implements IManagement {
     return { cacheRetrieval, cacheEvict };
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private resolvePromises(promises: any[], value: any) {
     for (const awaitingPromise of promises) {
       const resolve = awaitingPromise[0];
@@ -164,6 +175,7 @@ export class GenericManager implements IManagement {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private rejectPromises(promises: any[], error: unknown) {
     for (const awaitingPromise of promises) {
       const reject = awaitingPromise[1];
@@ -193,7 +205,12 @@ export class GenericManager implements IManagement {
     try {
       // store content locally
       await this.storage.set(key, ttlMilliseconds, cacheContent);
+    } catch (e) {
+      // do nothing if failed to store data
+      this.log(LogLevel.Error, `Failed to store key ${key} into cache`, e);
+    }
 
+    try {
       if (this.options.broadcast) {
         // broadcast cache content
         await this.controller.broadcastCacheKey(
@@ -204,7 +221,7 @@ export class GenericManager implements IManagement {
       }
     } catch (e) {
       // do nothing if failed to store data
-      // TODO
+      this.log(LogLevel.Error, `Failed to broadcast key ${key}`, e);
     }
 
     return cacheContent;

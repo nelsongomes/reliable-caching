@@ -138,7 +138,7 @@ describe("RedisCacheController", () => {
     });
 
     // this initializes combine manager
-    await cacheController.requestCacheStats();
+    await cacheController.requestCacheStats(3000);
 
     await cacheController.listenForMessage(() => false);
 
@@ -312,7 +312,7 @@ describe("RedisCacheController", () => {
     );
   });
 
-  it("Should fail gracefully is eviction request fails", async () => {
+  it("Should fail gracefully if eviction request fails", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;

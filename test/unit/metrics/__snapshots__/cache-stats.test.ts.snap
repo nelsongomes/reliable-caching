@@ -4,14 +4,12 @@ exports[`CacheStatsManager Should work with other sources of data 1`] = `
 "Operation query-f Cache Metrics:
 	Hit Ratio:        0.5
 	Performance Gain: x1
-	Processing Ratio: 0
-	Time Saved Ratio: 0"
+	Time-saved Ratio: 0"
 `;
 
 exports[`CacheStatsManager We should avoid have too much history to avoid overflow 1`] = `
 "Operation overflow-hit Cache Metrics:
 	Hit Ratio:        0.5
 	Performance Gain: x59970.161935225915
-	Processing Ratio: 0.9999666506378158
-	Time Saved Ratio: 0.4999916625204291"
+	Time-saved Ratio: 0.4999916625204291"
 `;

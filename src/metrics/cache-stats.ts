@@ -81,10 +81,6 @@ export class CacheStatsManager {
         value = 0;
       }
 
-      const divider =
-        stats.averageMissTime * stats.misses +
-        stats.averageHitTime * stats.hits;
-
       return {
         operation: operation,
         hitRatio: stats.hits / total,
@@ -92,7 +88,6 @@ export class CacheStatsManager {
           stats.averageHitTime === 0
             ? 0
             : stats.averageMissTime / stats.averageHitTime,
-        processingRatio: value / divider,
         timeSavedRatio:
           stats.averageMissTime === 0 || stats.hits + stats.misses === 0
             ? 0
@@ -130,7 +125,7 @@ export class CacheStatsManager {
     }
 
     output.push(
-      `Operation ${operation} Cache Metrics:\n\tHit Ratio:        ${stats.hitRatio}\n\tPerformance Gain: x${stats.performanceGain}\n\tProcessing Ratio: ${stats.processingRatio}\n\tTime Saved Ratio: ${stats.timeSavedRatio}`
+      `Operation ${operation} Cache Metrics:\n\tHit Ratio:        ${stats.hitRatio}\n\tPerformance Gain: x${stats.performanceGain}\n\tTime-saved Ratio: ${stats.timeSavedRatio}`
     );
 
     return output.join("\n");
