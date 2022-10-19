@@ -2,7 +2,7 @@
   "name": "reliable-caching",
   "description": "This package is the code support for book \"Node Reliable Caching\"",
   "author": "Nelson Gomes <nelson.ricardo.gomes@gmail.com>",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "license": "MIT",
   "repository": {
     "type": "git",

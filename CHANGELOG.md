@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2022-10-19
+
 ### Added
 
 - Updated documentation
@@ -23,5 +25,6 @@ When fixing merge conflicts below, make sure you do it correctly.
 Top line must have "unreleased" label and range from latest version to HEAD.
 --->
 <!-- prettier-ignore -->
-[Unreleased]: https://github.com/nelsongomes/reliable-caching/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/nelsongomes/reliable-caching/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/nelsongomes/reliable-caching/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/nelsongomes/reliable-caching/compare/v0.0.0...v0.1.0
