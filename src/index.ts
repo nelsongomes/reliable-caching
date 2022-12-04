@@ -4,3 +4,4 @@ export * from "./sign";
 export * from "./cache-controller";
 export * from "./management";
 export * from "./storage";
+export * from "./race";

@@ -3,7 +3,7 @@ import { delay } from "ts-timeframe";
 import {
   ConcurrencyControl,
   DataOwner,
-  GenericCacheManager,
+  GenericManager,
   KeyGenerator,
   LruInMemoryStorage,
   RedisCacheController,
@@ -22,7 +22,7 @@ const controller = new RedisCacheController({
 
 // our cache manager does not broadcast any evitions or new cache content
 // to other instances and does not check for any keys being generated concurrently
-const inMemoryManager = new GenericCacheManager(controller, storage, {
+const inMemoryManager = new GenericManager(controller, storage, {
   broadcast: false,
   concurrency: ConcurrencyControl.None,
 });

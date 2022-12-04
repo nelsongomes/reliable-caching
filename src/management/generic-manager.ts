@@ -2,6 +2,7 @@ import { getDeltaMilliseconds, now } from "ts-timeframe";
 import { ICacheController } from "../cache-controller";
 import { logHandle, LogLevel } from "../logging";
 import { CacheStatsManager } from "../metrics";
+import { OperationRegistry } from "../race";
 import { ICacheStorage } from "../storage/storage-interface";
 import {
   ConcurrencyControl,
@@ -54,8 +55,7 @@ export class GenericManager implements IManagement {
     cacheRetrieval: (key: string, ...innerArgs: P) => Promise<Awaited<R>>;
     cacheEvict: (key: string) => Promise<void>;
   } {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const operationRegistry = new Map<string, any[]>();
+    const operationRegistry = new OperationRegistry(operation);
 
     const cacheRetrieval = async (
       key: string,
@@ -78,41 +78,13 @@ export class GenericManager implements IManagement {
       }
 
       // if we reach this point it means either an exception occurred or we don't have any content in cache
-
-      // initialize registry for key
-      if (!operationRegistry.get(key)) {
-        operationRegistry.set(key, []);
-      }
-
       if (this.options.concurrency !== ConcurrencyControl.None) {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const keyRegistry = operationRegistry.get(key)!;
+        const alreadyExecutingPromise = operationRegistry.isExecuting<
+          Awaited<R>
+        >(key);
 
-        if (keyRegistry.length === 0) {
-          // first entry marks that a promise is fetching the key
-          keyRegistry.push([null, null]);
-        } else {
-          // next entries will wait for response of the first promise
-          const promise: Promise<Awaited<R>> = new Promise(
-            (resolve, reject) => {
-              const startCacheAwait = now();
-
-              keyRegistry.push([
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                (value: any) => {
-                  CacheStatsManager.miss(
-                    operation,
-                    getDeltaMilliseconds(startCacheAwait, now())
-                  );
-
-                  resolve(value);
-                },
-                reject,
-              ]);
-            }
-          );
-
-          return promise;
+        if (alreadyExecutingPromise) {
+          return alreadyExecutingPromise;
         }
       }
 
@@ -125,24 +97,14 @@ export class GenericManager implements IManagement {
           innerArgs
         );
 
-        // we reset registry, new requests will either use cache or start another request
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const promises = operationRegistry.get(key)!;
-        operationRegistry.delete(key);
-
         // if we succeeded to get the value, we send it to all awaiting promises
-        this.resolvePromises(promises, value);
+        operationRegistry.triggerAwaitingResolves<R>(key, value);
 
         // and return value for our initial promise
         return value;
       } catch (e) {
-        // we reset registry, new requests will either use cache or start another request
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const promises = operationRegistry.get(key)!;
-        operationRegistry.delete(key);
-
-        // our data request failed, so we will inform all promises that it failed
-        this.rejectPromises(promises, e);
+        // if fails we send error to all waiting rejects
+        operationRegistry.triggerAwaitingRejects<unknown>(key, e);
 
         // and throw error for our initial promise
         throw e;
@@ -159,34 +121,6 @@ export class GenericManager implements IManagement {
 
     // returns functions to abstract
     return { cacheRetrieval, cacheEvict };
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private resolvePromises(promises: any[], value: any) {
-    for (const awaitingPromise of promises) {
-      const resolve = awaitingPromise[0];
-
-      if (resolve) {
-        // trigger waiting promises on next eventloop
-        setImmediate(() => {
-          resolve(value);
-        });
-      }
-    }
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private rejectPromises(promises: any[], error: unknown) {
-    for (const awaitingPromise of promises) {
-      const reject = awaitingPromise[1];
-
-      if (reject) {
-        // trigger waiting rejections on next eventloop
-        setImmediate(() => {
-          reject(error);
-        });
-      }
-    }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
