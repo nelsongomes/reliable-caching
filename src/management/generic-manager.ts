@@ -97,14 +97,18 @@ export class GenericManager implements IManagement {
           innerArgs
         );
 
-        // if we succeeded to get the value, we send it to all awaiting promises
-        operationRegistry.triggerAwaitingResolves<R>(key, value);
+        if (this.options.concurrency !== ConcurrencyControl.None) {
+          // if we succeeded to get the value, we send it to all awaiting promises
+          operationRegistry.triggerAwaitingResolves<R>(key, value);
+        }
 
         // and return value for our initial promise
         return value;
       } catch (e) {
-        // if fails we send error to all waiting rejects
-        operationRegistry.triggerAwaitingRejects<unknown>(key, e);
+        if (this.options.concurrency !== ConcurrencyControl.None) {
+          // if fails we send error to all waiting rejects
+          operationRegistry.triggerAwaitingRejects<unknown>(key, e);
+        }
 
         // and throw error for our initial promise
         throw e;
