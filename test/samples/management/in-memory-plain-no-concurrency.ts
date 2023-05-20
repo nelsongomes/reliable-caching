@@ -57,12 +57,11 @@ async function main() {
   const key = createCostlyFunctionKey({ a: 3, b: 5 });
 
   for (let i = 0; i < 20; i++) {
-    console.log(
-      await Promise.all([
-        costlyCachedFunction(key, 3, 5),
-        costlyCachedFunction(key, 3, 5),
-      ])
-    );
+    const result = await Promise.all([
+      costlyCachedFunction(key, 3, 5),
+      costlyCachedFunction(key, 3, 5),
+    ]);
+    console.log(result);
 
     await delay(100);
   }

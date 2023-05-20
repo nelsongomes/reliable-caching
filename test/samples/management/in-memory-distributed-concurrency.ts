@@ -8,6 +8,7 @@ import {
   LruInMemoryStorage,
   RedisCacheController,
 } from "../../../src";
+import { LogLevel } from "../../../src/logging";
 
 // our storage is local in memory based on lru-cache package
 const storage = new LruInMemoryStorage({ max: 50 });
@@ -18,19 +19,25 @@ const controller = new RedisCacheController({
   redis: new Redis(),
   check: () => true, // sync it with your application healthcheck
   storage,
+  log: (logLevel: LogLevel, message: string, error?: unknown) => {
+    console.log(`${logLevel} ${message} ${error || ""}`);
+  },
 });
 
 // our cache manager does not broadcast any evitions or new cache content
 // to other instances and does not check for any keys being generated concurrently
 const inMemoryManager = new GenericManager(controller, storage, {
-  broadcast: true,
-  concurrency: ConcurrencyControl.Local,
+  broadcast: false,
+  concurrency: ConcurrencyControl.Distributed,
+  log: (logLevel: LogLevel, message: string, error?: unknown) => {
+    console.log(`${logLevel} ${message} ${error || ""}`);
+  },
 });
 
 // our data fetching function
 async function costlyFunction(a: number, b: number): Promise<number> {
-  await delay(200);
-  console.log("generated");
+  await delay(500);
+  console.log(`GENERATED a=${a}, b=${b}`);
 
   return a * b;
 }
@@ -40,7 +47,6 @@ const operation = "costlyFunction";
 // let's create a wrapped function
 const {
   cacheRetrieval: costlyCachedFunction,
-  cacheEvict: costlyCacheEviction,
 } = inMemoryManager.getWrapperFunctions<
   Parameters<typeof costlyFunction>,
   ReturnType<typeof costlyFunction>
@@ -57,19 +63,15 @@ const createCostlyFunctionKey = KeyGenerator.keyFactory<{
 async function main() {
   const key = createCostlyFunctionKey({ a: 3, b: 5 });
 
-  for (let i = 0; i < 50; i++) {
+  for (let i = 0; i < 100; i++) {
     const result = await Promise.all([
       costlyCachedFunction(key, 3, 5),
       costlyCachedFunction(key, 3, 5),
-      costlyCachedFunction(key, 3, 5),
     ]);
+
     console.log(`${i} ${result}`);
 
-    await delay(100 + Math.random() * 400);
-
-    if (Math.random() >= 0.9) {
-      await costlyCacheEviction(key);
-    }
+    await delay(100);
   }
 
   await inMemoryManager.close();

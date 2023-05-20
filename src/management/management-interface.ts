@@ -7,9 +7,10 @@ export enum ConcurrencyControl {
 }
 
 export type ManagementOptions = {
-  broadcast?: boolean;
-  concurrency?: ConcurrencyControl;
-  log?: logHandle;
+  broadcast: boolean;
+  concurrency: ConcurrencyControl;
+  lockTimeoutMs: number;
+  log: logHandle;
 };
 
 export interface IManagement {

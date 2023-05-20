@@ -15,7 +15,9 @@
       "type": "node",
       "request": "launch",
       "program": "${workspaceRoot}/node_modules/.bin/ts-node",
-      "args": ["${workspaceFolder}/test/samples/race/race-prevention.ts"],
+      "args": [
+        "${workspaceFolder}/test/samples/management/in-memory-distributed-concurrency.ts"
+      ],
       "skipFiles": ["<node_internals>/**/*.js"],
       "cwd": "${workspaceFolder}"
     }

@@ -17,6 +17,10 @@ export class OperationRegistry {
     }
   }
 
+  public existsKey(key: string): boolean {
+    return this.operationRegistry.has(key);
+  }
+
   public triggerAwaitingResolves<T = any>(key: string, value: T): void {
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     let promises: any[] = this.operationRegistry.get(key)!;
@@ -24,18 +28,18 @@ export class OperationRegistry {
     // we reset promises for next iteration
     this.operationRegistry.delete(key);
 
-    JSON.stringify(promises.length);
+    if (promises && promises.length) {
+      // cut first element
+      promises = promises.slice(1);
 
-    // cut first element
-    promises = promises.slice(1);
-
-    promises.map((promise) => {
-      const [resolve] = promise;
-      // trigger waiting promises on next eventloop
-      setImmediate(() => {
-        resolve(value);
+      promises.map((promise) => {
+        const [resolve] = promise;
+        // trigger waiting promises on next eventloop
+        setImmediate(() => {
+          resolve(value);
+        });
       });
-    });
+    }
   }
 
   public triggerAwaitingRejects<T = unknown>(key: string, error: T): void {
@@ -82,6 +86,7 @@ export class OperationRegistry {
 
             resolve(value);
           },
+          // not considering errors for miss measure
           reject,
         ]);
       });
