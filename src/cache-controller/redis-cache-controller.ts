@@ -1,6 +1,5 @@
 import Redis from "ioredis";
 import { delay } from "ts-timeframe";
-// import { serializeError, deserializeError } from "serialize-error";
 import { OperationRegistry } from "../race";
 import { CacheStats } from "../metrics/types";
 import { logHandle, LogLevel } from "../logging";
@@ -19,9 +18,9 @@ import {
 } from "./controller-interface";
 
 export class RedisCacheController implements ICacheController {
-  private streamId;
-  private pub;
-  private sub;
+  private streamId: string;
+  private pub: Redis;
+  private sub: Redis;
   private combinedStats: CombineStatsManager | undefined;
   private storage: ICacheStorage | undefined;
   private closing: boolean;

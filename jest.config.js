@@ -7,10 +7,13 @@ module.exports = {
   modulePathIgnorePatterns: ["<rootDir>/dist/"],
   setupFilesAfterEnv: ["./test/jest.setup.ts"],
   verbose: true,
-  globals: {
-    "ts-jest": {
-      tsconfig: "test/tsconfig.json",
-    },
+  transform: {
+    "^.+\\.{ts|tsx}?$": [
+      "ts-jest",
+      {
+        tsconfig: "test/tsconfig.json",
+      },
+    ],
   },
   collectCoverageFrom: ["src/**/*.{ts,tsx,js,jsx}", "!src/**/*.d.ts"],
 };

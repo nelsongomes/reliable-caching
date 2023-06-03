@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { getDeltaMilliseconds, now } from "ts-timeframe";
 import { CacheStatsManager } from "../metrics";
+//import { isErrorLike, deserializeError } from "../serialize-error";
 
 export class OperationRegistry {
   private operationRegistry: Map<string, any[]>;
@@ -42,7 +43,16 @@ export class OperationRegistry {
     }
   }
 
-  public triggerAwaitingRejects<T = unknown>(key: string, error: T): void {
+  public triggerAwaitingRejects<T = Error>(key: string, error: T): void {
+    const parsedError: T | Error = error;
+
+    // TODO unserialize error
+    /*if (error instanceof Error) {
+      parsedError = error;
+    } else if (isErrorLike(error)) {
+      parsedError = deserializeError(error);
+    }*/
+
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     let promises: any[] = this.operationRegistry.get(key)!;
 
@@ -56,7 +66,7 @@ export class OperationRegistry {
       const [, reject] = promise;
       // trigger waiting promises on next eventloop
       setImmediate(() => {
-        reject(error);
+        reject(parsedError);
       });
     });
   }
