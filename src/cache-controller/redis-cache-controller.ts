@@ -1,5 +1,6 @@
 import Redis from "ioredis";
 import { delay } from "ts-timeframe";
+import { err as serializer } from "pino-std-serializers";
 import { OperationRegistry } from "../race";
 import { CacheStats } from "../metrics/types";
 import { logHandle, LogLevel } from "../logging";
@@ -339,7 +340,7 @@ export class RedisCacheController implements ICacheController {
       data: {
         operation,
         key,
-        value: data, // TODO error ? serializeError(data) : data,
+        value: JSON.stringify(serializer(data)),
         error,
       },
       requester: CombineStatsManager.getInstanceKey(),

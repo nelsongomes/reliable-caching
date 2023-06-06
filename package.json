@@ -43,12 +43,15 @@
     "docs": "typedoc --out docs src"
   },
   "dependencies": {
+    "http-errors": "2.0.0",
     "immutable": "4.1.0",
     "ioredis": "5.0.6",
     "lru-cache": "7.12.0",
+    "pino-std-serializers": "6.2.1",
     "ts-timeframe": "0.4.1"
   },
   "devDependencies": {
+    "@types/http-errors": "2.0.1",
     "@types/jest": "26.0.23",
     "@types/lru-cache": "7.10.10",
     "@types/node": "16.x",
