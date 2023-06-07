@@ -3,7 +3,7 @@ import { delay } from "ts-timeframe";
 import {
   ConcurrencyControl,
   DataOwner,
-  GenericCacheManager,
+  GenericManager,
   KeyGenerator,
   LruInMemoryStorage,
   RedisCacheController,
@@ -22,7 +22,7 @@ const controller = new RedisCacheController({
 
 // our cache manager does not broadcast any evitions or new cache content
 // to other instances and does not check for any keys being generated concurrently
-const inMemoryManager = new GenericCacheManager(controller, storage, {
+const inMemoryManager = new GenericManager(controller, storage, {
   broadcast: false,
   concurrency: ConcurrencyControl.None,
 });
@@ -57,12 +57,11 @@ async function main() {
   const key = createCostlyFunctionKey({ a: 3, b: 5 });
 
   for (let i = 0; i < 20; i++) {
-    console.log(
-      await Promise.all([
-        costlyCachedFunction(key, 3, 5),
-        costlyCachedFunction(key, 3, 5),
-      ])
-    );
+    const result = await Promise.all([
+      costlyCachedFunction(key, 3, 5),
+      costlyCachedFunction(key, 3, 5),
+    ]);
+    console.log(result);
 
     await delay(100);
   }

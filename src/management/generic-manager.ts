@@ -1,8 +1,9 @@
-import { getDeltaMilliseconds, now } from "ts-timeframe";
-import { ICacheController } from "../cache-controller";
-import { logHandle, LogLevel } from "../logging";
+import { OperationRegistry } from "../race";
 import { CacheStatsManager } from "../metrics";
+import { logHandle, LogLevel } from "../logging";
+import { ICacheController } from "../cache-controller";
 import { ICacheStorage } from "../storage/storage-interface";
+import { delay, getDeltaMilliseconds, now } from "ts-timeframe";
 import {
   ConcurrencyControl,
   IManagement,
@@ -12,6 +13,7 @@ import {
 const DEFAULTS: ManagementOptions = {
   broadcast: true,
   concurrency: ConcurrencyControl.Local,
+  lockTimeoutMs: 30000,
   log: () => {
     return;
   },
@@ -21,20 +23,15 @@ export class GenericManager implements IManagement {
   private controller: ICacheController;
   private storage: ICacheStorage;
   private options: ManagementOptions;
-  private log: logHandle = DEFAULTS.log as logHandle;
 
   constructor(
     controller: ICacheController,
     storage: ICacheStorage,
-    options?: ManagementOptions
+    options?: Partial<ManagementOptions>
   ) {
     this.controller = controller;
     this.storage = storage;
     this.options = { ...DEFAULTS, ...options };
-
-    if (this.options && this.options.log) {
-      this.log = this.options.log;
-    }
   }
 
   /**
@@ -54,98 +51,54 @@ export class GenericManager implements IManagement {
     cacheRetrieval: (key: string, ...innerArgs: P) => Promise<Awaited<R>>;
     cacheEvict: (key: string) => Promise<void>;
   } {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const operationRegistry = new Map<string, any[]>();
+    const operationRegistry = new OperationRegistry(operation);
+
+    if (this.options.concurrency === ConcurrencyControl.Distributed) {
+      // this declares to controller which operation registry to use by this operation (done once)
+      this.controller.setRegistry(operation, operationRegistry);
+    }
 
     const cacheRetrieval = async (
       key: string,
       ...innerArgs: P
     ): Promise<Awaited<R>> => {
-      try {
-        const startHit = now();
-        const cacheContent = await this.storage.get<R>(key);
-
-        if (cacheContent) {
-          CacheStatsManager.hit(
-            operation,
-            getDeltaMilliseconds(startHit, now())
+      switch (this.options.concurrency) {
+        case ConcurrencyControl.Distributed:
+          return await this.distributedConcurrencyFlow<R, P>(
+            {
+              operation,
+              key,
+              ttlMilliseconds,
+              fn,
+              log: this.options.log,
+            },
+            ...innerArgs
           );
-
-          return cacheContent;
-        }
-      } catch (e) {
-        this.log(LogLevel.Error, `Failed to get key ${key} from cache`, e);
-      }
-
-      // if we reach this point it means either an exception occurred or we don't have any content in cache
-
-      // initialize registry for key
-      if (!operationRegistry.get(key)) {
-        operationRegistry.set(key, []);
-      }
-
-      if (this.options.concurrency !== ConcurrencyControl.None) {
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const keyRegistry = operationRegistry.get(key)!;
-
-        if (keyRegistry.length === 0) {
-          // first entry marks that a promise is fetching the key
-          keyRegistry.push([null, null]);
-        } else {
-          // next entries will wait for response of the first promise
-          const promise: Promise<Awaited<R>> = new Promise(
-            (resolve, reject) => {
-              const startCacheAwait = now();
-
-              keyRegistry.push([
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                (value: any) => {
-                  CacheStatsManager.miss(
-                    operation,
-                    getDeltaMilliseconds(startCacheAwait, now())
-                  );
-
-                  resolve(value);
-                },
-                reject,
-              ]);
-            }
+        case ConcurrencyControl.Local:
+          return await this.localConcurrencyFlow<R, P>(
+            {
+              operation,
+              key,
+              ttlMilliseconds,
+              fn,
+              log: this.options.log,
+              operationRegistry,
+            },
+            ...innerArgs
           );
-
-          return promise;
-        }
-      }
-
-      try {
-        const value = await this.fetchAndStore<P, R>(
-          key,
-          operation,
-          ttlMilliseconds,
-          fn,
-          innerArgs
-        );
-
-        // we reset registry, new requests will either use cache or start another request
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const promises = operationRegistry.get(key)!;
-        operationRegistry.delete(key);
-
-        // if we succeeded to get the value, we send it to all awaiting promises
-        this.resolvePromises(promises, value);
-
-        // and return value for our initial promise
-        return value;
-      } catch (e) {
-        // we reset registry, new requests will either use cache or start another request
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        const promises = operationRegistry.get(key)!;
-        operationRegistry.delete(key);
-
-        // our data request failed, so we will inform all promises that it failed
-        this.rejectPromises(promises, e);
-
-        // and throw error for our initial promise
-        throw e;
+        case ConcurrencyControl.None:
+          return await this.noConcurrencyFlow<R, P>(
+            {
+              operation,
+              key,
+              ttlMilliseconds,
+              fn,
+              log: this.options.log,
+            },
+            ...innerArgs
+          );
+        default:
+          throw new Error("should not happen");
       }
     };
 
@@ -159,34 +112,6 @@ export class GenericManager implements IManagement {
 
     // returns functions to abstract
     return { cacheRetrieval, cacheEvict };
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private resolvePromises(promises: any[], value: any) {
-    for (const awaitingPromise of promises) {
-      const resolve = awaitingPromise[0];
-
-      if (resolve) {
-        // trigger waiting promises on next eventloop
-        setImmediate(() => {
-          resolve(value);
-        });
-      }
-    }
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  private rejectPromises(promises: any[], error: unknown) {
-    for (const awaitingPromise of promises) {
-      const reject = awaitingPromise[1];
-
-      if (reject) {
-        // trigger waiting rejections on next eventloop
-        setImmediate(() => {
-          reject(error);
-        });
-      }
-    }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -207,7 +132,11 @@ export class GenericManager implements IManagement {
       await this.storage.set(key, ttlMilliseconds, cacheContent);
     } catch (e) {
       // do nothing if failed to store data
-      this.log(LogLevel.Error, `Failed to store key ${key} into cache`, e);
+      this.options.log(
+        LogLevel.Error,
+        `Failed to store key ${key} into cache`,
+        e
+      );
     }
 
     try {
@@ -221,13 +150,227 @@ export class GenericManager implements IManagement {
       }
     } catch (e) {
       // do nothing if failed to store data
-      this.log(LogLevel.Error, `Failed to broadcast key ${key}`, e);
+      this.options.log(LogLevel.Error, `Failed to broadcast key ${key}`, e);
     }
 
     return cacheContent;
   }
 
   async close(): Promise<void> {
-    await this.controller.close();
+    return this.controller.close();
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  async noConcurrencyFlow<R, P extends any[]>(
+    {
+      operation,
+      key,
+      ttlMilliseconds,
+      fn,
+      log,
+    }: {
+      operation: string;
+      key: string;
+      ttlMilliseconds: number;
+      fn: (...args: P) => Promise<Awaited<R>>;
+      log: logHandle;
+    },
+    ...innerArgs: P
+  ): Promise<Awaited<R>> {
+    try {
+      const startHit = now();
+      const cacheContent = await this.storage.get<R>(key);
+
+      if (cacheContent) {
+        CacheStatsManager.hit(operation, getDeltaMilliseconds(startHit, now()));
+
+        return cacheContent;
+      }
+    } catch (e) {
+      log(LogLevel.Debug, `Failed to get key ${key} from cache`, e);
+    }
+
+    const value = await this.fetchAndStore<P, R>(
+      key,
+      operation,
+      ttlMilliseconds,
+      fn,
+      innerArgs
+    );
+
+    // and return value for our initial promise
+    return value;
+  }
+
+  async localConcurrencyFlow<R, P extends any[]>(
+    {
+      operation,
+      key,
+      ttlMilliseconds,
+      fn,
+      log,
+      operationRegistry,
+    }: {
+      operation: string;
+      key: string;
+      ttlMilliseconds: number;
+      fn: (...args: P) => Promise<Awaited<R>>;
+      log: logHandle;
+      operationRegistry: OperationRegistry;
+    },
+    ...innerArgs: P
+  ): Promise<Awaited<R>> {
+    try {
+      const startHit = now();
+      const cacheContent = await this.storage.get<R>(key);
+
+      if (cacheContent) {
+        CacheStatsManager.hit(operation, getDeltaMilliseconds(startHit, now()));
+
+        return cacheContent;
+      }
+    } catch (e) {
+      log(LogLevel.Debug, `Failed to get key ${key} from cache`, e);
+    }
+
+    const alreadyExecutingPromise = operationRegistry.isExecuting<Awaited<R>>(
+      key
+    );
+
+    if (alreadyExecutingPromise) {
+      return alreadyExecutingPromise;
+    }
+
+    try {
+      const value = await this.fetchAndStore<P, R>(
+        key,
+        operation,
+        ttlMilliseconds,
+        fn,
+        innerArgs
+      );
+
+      // if we succeeded to get the value, we send it to all awaiting promises
+      operationRegistry.triggerAwaitingResolves<R>(key, value);
+
+      // and return value for our initial promise
+      return value;
+    } catch (e) {
+      // if fails we send error to all waiting rejects
+      operationRegistry.triggerAwaitingRejects<unknown>(key, e);
+
+      // and throw error for our initial promise
+      throw e;
+    }
+  }
+
+  async distributedConcurrencyFlow<R, P extends any[]>(
+    {
+      operation,
+      key,
+      ttlMilliseconds,
+      fn,
+      log,
+    }: {
+      operation: string;
+      key: string;
+      ttlMilliseconds: number;
+      fn: (...args: P) => Promise<Awaited<R>>;
+      log: logHandle;
+    },
+    ...innerArgs: P
+  ): Promise<Awaited<R>> {
+    try {
+      const startHit = now();
+      const cacheContent = await this.storage.get<R>(key);
+
+      if (cacheContent) {
+        CacheStatsManager.hit(operation, getDeltaMilliseconds(startHit, now()));
+        log(LogLevel.Debug, "content found in cache");
+
+        return cacheContent;
+      }
+    } catch (e) {
+      log(LogLevel.Info, `Failed to get key ${key} from cache`, e);
+    }
+
+    // if we reach this point it means either an exception occurred or we don't have any content in cache
+    let functionState: Promise<void> | null = null;
+    let lockState = false;
+
+    while (!lockState) {
+      // try to obtain lock
+      const { lockResult, unlockFunction } = await this.controller.lock(
+        `${operation}#${key}`,
+        this.options.lockTimeoutMs as number
+      );
+      functionState = unlockFunction;
+      lockState = lockResult;
+
+      if (lockState === false) {
+        // give time for eventloop (operation start message to get in)
+        await delay(5);
+
+        // or get a promise for result, if controller has received information that someone else is executing it already
+        const otherOngoingPromise = this.controller.getOperationPromise<
+          Awaited<R>
+        >(operation, key);
+
+        if (otherOngoingPromise) {
+          log(
+            LogLevel.Debug,
+            "GOT A PROMISE!! Hurrah, this operation is already ongoing"
+          );
+          return otherOngoingPromise;
+        } else {
+          log(LogLevel.Debug, "failed to get promise retrying");
+        }
+      } else {
+        log(LogLevel.Info, "got lock, going to execute function");
+      }
+    }
+
+    // initializes remote operation registry tables
+    await this.controller.requestOperationStart(operation, key);
+
+    try {
+      const value = await this.fetchAndStore<P, R>(
+        key,
+        operation,
+        ttlMilliseconds,
+        fn,
+        innerArgs
+      );
+
+      if (lockState) {
+        // send operation result to all awaiting for result
+        await this.controller.requestOperationEnd(
+          operation,
+          key,
+          value,
+          false,
+          functionState as Promise<void> // unlock is triggered by processing end operation
+        );
+      }
+
+      // and return value for our initial promise
+      return value;
+    } catch (e) {
+      if (lockState) {
+        console.log("throwed exception"); // TODO
+
+        // send operation result to all awaiting for result
+        await this.controller.requestOperationEnd(
+          operation,
+          key,
+          e,
+          true, // < is error
+          functionState as Promise<void> // unlock is triggered by processing end operation
+        );
+      }
+
+      // and throw error for our initial promise
+      throw e;
+    }
   }
 }

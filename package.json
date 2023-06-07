@@ -2,7 +2,7 @@
   "name": "reliable-caching",
   "description": "This package is the code support for book \"Node Reliable Caching\"",
   "author": "Nelson Gomes <nelson.ricardo.gomes@gmail.com>",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -43,12 +43,15 @@
     "docs": "typedoc --out docs src"
   },
   "dependencies": {
+    "http-errors": "2.0.0",
     "immutable": "4.1.0",
     "ioredis": "5.0.6",
     "lru-cache": "7.12.0",
+    "pino-std-serializers": "6.2.1",
     "ts-timeframe": "0.4.1"
   },
   "devDependencies": {
+    "@types/http-errors": "2.0.1",
     "@types/jest": "26.0.23",
     "@types/lru-cache": "7.10.10",
     "@types/node": "16.x",
@@ -57,12 +60,13 @@
     "eslint": "7.25.0",
     "eslint-config-prettier": "8.3.0",
     "eslint-plugin-jest": "24.3.6",
-    "jest": "26.6.3",
+    "jest": "29.5.0",
     "lint-staged": "10.5.4",
     "pre-commit": "1.2.2",
     "prettier": "2.2.1",
     "release-it": "15.5.0",
-    "ts-jest": "26.5.6",
+    "ts-jest": "29.1.0",
+    "ts-node": "10.9.1",
     "typedoc": "0.23.17",
     "typescript": "4.7.4"
   },

@@ -1,9 +1,11 @@
 import Redis from "ioredis";
 import { delay } from "ts-timeframe";
-import { logHandle, LogLevel } from "../logging";
-import { CacheStatsManager, CombineStatsManager } from "../metrics";
+import { err as serializer } from "pino-std-serializers";
+import { OperationRegistry } from "../race";
 import { CacheStats } from "../metrics/types";
+import { logHandle, LogLevel } from "../logging";
 import { ICacheStorage } from "../storage/storage-interface";
+import { CacheStatsManager, CombineStatsManager } from "../metrics";
 import {
   BroadcastCacheKeyRequest,
   CollectDataReply,
@@ -11,17 +13,21 @@ import {
   EvictionKeyRequest,
   ICacheController,
   Operation,
+  OperationEndRequest,
   Operations,
+  OperationStartRequest,
 } from "./controller-interface";
 
 export class RedisCacheController implements ICacheController {
-  private streamId;
-  private pub;
-  private sub;
+  private streamId: string;
+  private pub: Redis;
+  private sub: Redis;
   private combinedStats: CombineStatsManager | undefined;
   private storage: ICacheStorage | undefined;
   private closing: boolean;
   private log: logHandle;
+  private operationRegistries: Map<string, OperationRegistry>;
+  private unlocks: Map<string, Promise<void>>;
 
   constructor({
     streamId,
@@ -39,11 +45,13 @@ export class RedisCacheController implements ICacheController {
     log?: logHandle;
   }) {
     this.streamId = streamId;
-    this.pub = redis;
+    this.pub = redis; // make a new independent connection for publisher connection
     this.sub = redis.duplicate(); // make a new independent connection for subscriber connection
     this.storage = storage;
     this.closing = false;
     this.log = log;
+    this.operationRegistries = new Map();
+    this.unlocks = new Map();
 
     this.listenForMessage(check);
   }
@@ -105,7 +113,7 @@ export class RedisCacheController implements ICacheController {
 
     await this.pub.xadd(this.streamId, "*", "data", JSON.stringify(message));
 
-    // wait for responses to come
+    // wait for responses to come in
     await delay(timeoutMs);
 
     // finalize data
@@ -122,34 +130,37 @@ export class RedisCacheController implements ICacheController {
 
     do {
       try {
-        const results = await this.sub.xread(
-          "BLOCK",
-          0,
-          "STREAMS",
-          this.streamId,
-          lastId
-        );
+        if (!this.closing) {
+          const results = await this.sub.xread(
+            "BLOCK",
+            100,
+            "STREAMS",
+            this.streamId,
+            lastId
+          );
 
-        if (results) {
-          const [key, messages] = results[0];
+          if (results) {
+            const [key, messages] = results[0];
 
-          for (const message of messages) {
-            const [id, data] = message;
+            for (const message of messages) {
+              const [id, data] = message;
 
-            if (key === this.streamId) {
-              await this.processMessage(JSON.parse(data[1]));
+              if (key === this.streamId) {
+                await this.processMessage(JSON.parse(data[1]));
+              }
+
+              // update stream position
+              lastId = id;
             }
-
-            // update stream position
-            lastId = id;
           }
         }
-      } catch (e: unknown) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      } catch (e: any) {
         this.log(LogLevel.Error, `Failed to process message`, e);
-
-        await delay(200);
       }
     } while (repeat() && !this.closing);
+
+    this.log(LogLevel.Debug, `Ending`);
   }
 
   async processMessage(message: Operations): Promise<void> {
@@ -192,6 +203,64 @@ export class RedisCacheController implements ICacheController {
           message.data.ttlMilliseconds,
           message.data.value
         );
+        break;
+      case Operation.OperationStart:
+        {
+          this.log(
+            LogLevel.Debug,
+            `Operation ${message.data.operation} started for key: ${message.data.key} initiator ${message.requester}`
+          );
+
+          const operationRegistry = this.operationRegistries.get(
+            message.data.operation
+          );
+
+          if (operationRegistry) {
+            // if operation registry exists for this operation initialize table to mark operation is ongoing
+            operationRegistry.isExecuting(message.data.key);
+          }
+        }
+        break;
+      case Operation.OperationEnd:
+        {
+          this.log(
+            LogLevel.Debug,
+            `Operation ${message.data.operation} end for key: ${message.data.key} initiator ${message.requester}`
+          );
+
+          const operationRegistry = this.operationRegistries.get(
+            message.data.operation
+          );
+
+          if (operationRegistry) {
+            if (message.data.error === false) {
+              // resolves all pending promises
+              operationRegistry.triggerAwaitingResolves(
+                message.data.key,
+                message.data.value
+              );
+            } else {
+              // throws all pending promises
+              operationRegistry.triggerAwaitingRejects(
+                message.data.key,
+                message.data.value // TODO deserializeError(message.data.value),
+              );
+            }
+          }
+
+          // get some time for eventloop (and give some time for other instances to process message too)
+          await delay(0);
+
+          // if this was the instance that executed then trigger the unlock
+          const key = `${message.data.operation}#${message.data.key}`;
+          const unlockPromise = this.unlocks.get(key);
+
+          if (unlockPromise) {
+            this.log(LogLevel.Debug, `Unlocking key ${key}`);
+            this.unlocks.delete(key);
+            await unlockPromise;
+          }
+        }
         break;
     }
   }
@@ -237,10 +306,110 @@ export class RedisCacheController implements ICacheController {
     }
   }
 
+  async requestOperationStart(operation: string, key: string): Promise<void> {
+    const message: OperationStartRequest = {
+      type: Operation.OperationStart,
+      data: { operation, key },
+      requester: CombineStatsManager.getInstanceKey(),
+    };
+
+    try {
+      await this.pub.xadd(this.streamId, "*", "data", JSON.stringify(message));
+    } catch (e) {
+      this.log(
+        LogLevel.Error,
+        `Failed to send operation start request for operation: ${operation} key: ${key}`,
+        e
+      );
+    }
+  }
+
+  async requestOperationEnd(
+    operation: string,
+    key: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
+    data: any,
+    error: boolean,
+    unlock: Promise<void>
+  ): Promise<void> {
+    // store unlock for operation and key
+    this.unlocks.set(`${operation}#${key}`, unlock);
+
+    const message: OperationEndRequest = {
+      type: Operation.OperationEnd,
+      data: {
+        operation,
+        key,
+        value: JSON.stringify(serializer(data)),
+        error,
+      },
+      requester: CombineStatsManager.getInstanceKey(),
+    };
+
+    try {
+      await this.pub.xadd(this.streamId, "*", "data", JSON.stringify(message));
+    } catch (e) {
+      this.log(
+        LogLevel.Error,
+        `Failed to send operation end request for operation: ${operation} key: ${key}`,
+        e
+      );
+    }
+  }
+
+  async lock(
+    key: string,
+    lockTtlMs: number
+  ): Promise<{ lockResult: boolean; unlockFunction: Promise<void> | null }> {
+    const result = await this.pub.incr(key);
+
+    const lockResult = result === 1;
+    console.log(key, result, lockResult, lockTtlMs);
+
+    if (lockResult) {
+      // set expire ttl
+      await this.pub.pexpire(key, lockTtlMs, "NX");
+
+      const before = Date.now() + lockTtlMs;
+      const unlockFunction = new Promise<void>((resolve) => {
+        if (Date.now() < before) {
+          this.pub
+            .del(key) // we try to remove lock
+            .then(() => resolve())
+            .catch(() => resolve()); // we don't care if any error occurs because its close to timeout
+        }
+      });
+
+      return { lockResult, unlockFunction };
+    }
+
+    return { lockResult, unlockFunction: null };
+  }
+
+  async unlock(key: string): Promise<void> {
+    await this.pub.del(key);
+  }
+
+  setRegistry(operation: string, operationRegistry: OperationRegistry): void {
+    this.operationRegistries.set(operation, operationRegistry);
+  }
+
+  getOperationPromise<T>(
+    operation: string,
+    key: string
+  ): Promise<T> | undefined {
+    const operationRegistry = this.operationRegistries.get(operation);
+
+    if (operationRegistry && operationRegistry.existsKey(key)) {
+      return operationRegistry.isExecuting<T>(key);
+    }
+  }
+
   async close(): Promise<void> {
-    this.log(LogLevel.Info, `Controller is closing`);
+    this.log(LogLevel.Debug, `Controller is closing`);
 
     this.closing = true;
+
     this.pub.disconnect();
     this.sub.disconnect();
   }

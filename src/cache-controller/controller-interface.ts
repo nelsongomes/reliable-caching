@@ -1,3 +1,4 @@
+import { OperationRegistry } from "../race";
 import { CacheStats } from "../metrics/types";
 
 export enum Operation {
@@ -5,6 +6,8 @@ export enum Operation {
   ReplyStats = "stats-reply",
   EvictKey = "evict-key",
   BroadcastKey = "set-key",
+  OperationStart = "operation-start",
+  OperationEnd = "operation-end",
 }
 
 export type CollectDataRequest = {
@@ -24,6 +27,18 @@ export type EvictionKeyRequest = {
   data: { key: string };
 };
 
+export type OperationStartRequest = {
+  type: Operation.OperationStart;
+  requester: string;
+  data: { operation: string; key: string };
+};
+
+export type OperationEndRequest = {
+  type: Operation.OperationEnd;
+  requester: string;
+  data: { operation: string; key: string; value: string; error: boolean };
+};
+
 export type BroadcastCacheKeyRequest = {
   type: Operation.BroadcastKey;
   data: { key: string; ttlMilliseconds: number; value: string };
@@ -33,7 +48,9 @@ export type Operations =
   | CollectDataRequest
   | CollectDataReply
   | EvictionKeyRequest
-  | BroadcastCacheKeyRequest;
+  | BroadcastCacheKeyRequest
+  | OperationStartRequest
+  | OperationEndRequest;
 
 export interface ICacheController {
   /**
@@ -77,4 +94,51 @@ export interface ICacheController {
    * Method to terminate controller
    */
   close(): Promise<void>;
+
+  /**
+   * Method that locks a key
+   * @param key ID of the key being locked
+   * @param lockTtlMs Ttl of the lock
+   *
+   * Returns function to unlock key
+   */
+  lock(
+    key: string,
+    lockTtlMs: number
+  ): Promise<{ lockResult: boolean; unlockFunction: Promise<void> | null }>;
+
+  /**
+   * this sets operation registry to be used by an operation
+   * @param operation
+   * @param operationRegistry
+   */
+  setRegistry(operation: string, operationRegistry: OperationRegistry): void;
+
+  /**
+   * Notifies all instances that operation with a given key is being executed
+   * @param operation
+   * @param key
+   */
+  requestOperationStart(operation: string, key: string): Promise<void>;
+
+  /**
+   * Notifies all instances that operation with a given key has finished
+   * @param operation
+   * @param key
+   * @param value
+   * @param error
+   */
+  requestOperationEnd(
+    operation: string,
+    key: string,
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    value: any,
+    error: boolean,
+    unlock: Promise<void>
+  ): Promise<void>;
+
+  getOperationPromise<T>(
+    operation: string,
+    key: string
+  ): Promise<T> | undefined;
 }

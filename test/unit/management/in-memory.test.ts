@@ -77,7 +77,7 @@ describe("InMemoryManager", () => {
     inMemoryManager.close();
   });
 
-  it("Should generate a miss and generate new cache content and return it, with local concurrency", async () => {
+  it("Should generate a miss and generate new cache content and return it, with local concurrency control", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -115,7 +115,45 @@ describe("InMemoryManager", () => {
     inMemoryManager.close();
   });
 
-  it("Should generate a miss and throw exception to all threads if content generation fails, with local concurrency", async () => {
+  it("Should generate a miss and generate new cache content and return it, with no concurrency control", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.xadd = jest.fn();
+
+    const storage = new LruInMemoryStorage({ max: 50 });
+
+    const controller = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+      storage,
+    });
+
+    const inMemoryManager = new GenericManager(controller, storage, {
+      concurrency: ConcurrencyControl.None,
+    });
+
+    const operation = "costlyFunction";
+
+    // let's create a wrapped function
+    const { cacheRetrieval } = inMemoryManager.getWrapperFunctions<
+      Parameters<typeof costlyFunction>,
+      ReturnType<typeof costlyFunction>
+    >(operation, 500, costlyFunction);
+
+    const result = await Promise.all([
+      cacheRetrieval("123", 1, 2),
+      cacheRetrieval("123", 1, 2),
+    ]);
+
+    expect(result).toStrictEqual([2, 2]);
+    expect(redis.xadd).toBeCalledTimes(2); // all calls are made
+    inMemoryManager.close();
+  });
+
+  it("Should generate a miss and throw exception to all threads if content generation fails, with local concurrency control", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -132,6 +170,49 @@ describe("InMemoryManager", () => {
 
     const inMemoryManager = new GenericManager(controller, storage, {
       concurrency: ConcurrencyControl.Local,
+    });
+
+    const operation = "costlyFunction";
+
+    // let's create a wrapped function
+    const { cacheRetrieval } = inMemoryManager.getWrapperFunctions<
+      Parameters<typeof costlyFunction>,
+      ReturnType<typeof costlyFunction>
+    >(operation, 500, async () => {
+      delay(100);
+      throw new Error("fail");
+    });
+
+    await expect(async () => {
+      await Promise.all([
+        cacheRetrieval("123", 1, 2),
+        cacheRetrieval("123", 1, 2),
+      ]);
+    }).rejects.toThrowError("fail");
+
+    // this gives time for eventloop to run and process setImmediate rejection in our test
+    await delay(0);
+
+    inMemoryManager.close();
+  });
+
+  it("Should generate a miss and throw exception to all threads if content generation fails, with no concurrency control", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+
+    const storage = new LruInMemoryStorage({ max: 50 });
+
+    const controller = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+      storage,
+    });
+
+    const inMemoryManager = new GenericManager(controller, storage, {
+      concurrency: ConcurrencyControl.None,
     });
 
     const operation = "costlyFunction";

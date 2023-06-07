@@ -1,0 +1,3 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Error serialization/deserialization tests Should serialize/deserialize http error with no defaults 1`] = `"{"type":"InternalServerError","message":"Unknown error","stack":"...","status":500,"expose":false,"statusCode":500}"`;
