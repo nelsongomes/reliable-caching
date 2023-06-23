@@ -4,6 +4,7 @@
 
 An ongoing project focused on reliable caching in Node, for now you can check some articles published in Medium:<br/>
 [Drop hit ratio as cache measure, now!](https://medium.com/pipedrive-engineering/drop-hit-ratio-as-cache-measure-now-98970238dbbf)
+[Resource optimization in Node.js](https://medium.com/pipedrive-engineering/resource-optimization-in-node-js-c90c731f9df4)
 
 These ideas are being compiled into a book focused mainly on reliable caching for node.
 
