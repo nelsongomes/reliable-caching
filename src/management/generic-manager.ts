@@ -62,6 +62,11 @@ export class GenericManager implements IManagement {
       key: string,
       ...innerArgs: P
     ): Promise<Awaited<R>> => {
+      this.options.log(
+        LogLevel.Info,
+        `Using ${ConcurrencyControl.Distributed} mode`
+      );
+
       switch (this.options.concurrency) {
         case ConcurrencyControl.Distributed:
           return await this.distributedConcurrencyFlow<R, P>(

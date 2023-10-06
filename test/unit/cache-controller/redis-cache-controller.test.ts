@@ -8,6 +8,8 @@ import {
   EvictionKeyRequest,
   LruInMemoryStorage,
   Operation,
+  OperationRegistry,
+  OperationStartRequest,
   RedisCacheController,
 } from "../../../src";
 
@@ -286,6 +288,76 @@ describe("RedisCacheController", () => {
 
     // it calls 2 times because constructor already calls listenForMessage
     expect(redis.xread).toBeCalledTimes(2);
+  });
+
+  it("Should receive request start message request, for distributed race prevention and do nothing because operation was not declared yet", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.xread = jest.fn(() => {
+      const request: OperationStartRequest = {
+        type: Operation.OperationStart,
+        requester: "requester",
+        data: {
+          key: "storeme",
+          operation: "operation",
+        },
+      };
+
+      return [["stream", [["id", ["?", JSON.stringify(request)]]]]];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any;
+
+    const storage = new LruInMemoryStorage({ max: 50 });
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+      storage,
+    });
+
+    await cacheController.listenForMessage(() => false);
+
+    // it calls 2 times because constructor already calls listenForMessage
+    expect(redis.xread).toBeCalledTimes(2);
+  });
+
+  it("Should receive request start message request, for distributed race prevention and init operation registry", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.xread = jest.fn(() => {
+      const request: OperationStartRequest = {
+        type: Operation.OperationStart,
+        requester: "requester",
+        data: {
+          key: "storeme",
+          operation: "operation",
+        },
+      };
+
+      return [["stream", [["id", ["?", JSON.stringify(request)]]]]];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any;
+
+    const storage = new LruInMemoryStorage({ max: 50 });
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+      storage,
+    });
+
+    const operationRegistry = new OperationRegistry("operation");
+    cacheController.setRegistry("operation", operationRegistry);
+
+    await cacheController.listenForMessage(() => false);
+
+    // it calls 2 times because constructor already calls listenForMessage
+    expect(redis.xread).toBeCalledTimes(2);
+    expect(operationRegistry.existsKey("storeme")).toBe(true);
   });
 
   it("Should request remote cache key eviction", async () => {
