@@ -534,6 +534,158 @@ describe("RedisCacheController", () => {
     );
   });
 
+  it("Should send operation start (local)", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.xadd = jest.fn(async () => {
+      throw new Error("fail");
+    });
+
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+    });
+
+    await cacheController.requestOperationStart("operation", "key");
+
+    expect(redis.xadd).toBeCalledWith(
+      "stream",
+      "*",
+      "data",
+      expect.stringMatching(
+        '{"type":"operation-start","data":{"operation":"operation","key":"key"},"requester":"[a-f0-9-]+"}'
+      )
+    );
+  });
+
+  it("Should send operation end (local)", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.xadd = jest.fn(async () => {
+      throw new Error("fail");
+    });
+
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+    });
+
+    await cacheController.requestOperationEnd(
+      "operation",
+      "key",
+      {},
+      false,
+      new Promise((resolve) => {
+        resolve();
+      })
+    );
+
+    expect(redis.xadd).toBeCalledWith(
+      "stream",
+      "*",
+      "data",
+      expect.stringMatching(
+        '{"type":"operation-end","data":{"operation":"operation","key":"key","value":"{}","error":false},"requester":"[a-f0-9-]+"}'
+      )
+    );
+  });
+
+  it("Should trigger a lock with successfull unlock (local)", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.incr = jest.fn(async () => {
+      return 1;
+    });
+    redis.pexpire = jest.fn(async () => {
+      return 1;
+    });
+    redis.del = jest.fn(async () => {
+      return 1;
+    });
+
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+    });
+
+    const { lockResult, unlockFunction } = await cacheController.lock(
+      "key",
+      100
+    );
+
+    expect(lockResult).toBe(true);
+    expect(unlockFunction).toBeInstanceOf(Object);
+  });
+
+  it("Should fail to trigger a lock", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.incr = jest.fn(async () => {
+      return 2;
+    });
+    redis.pexpire = jest.fn(async () => {
+      return 1;
+    });
+    redis.del = jest.fn(async () => {
+      return 1;
+    });
+
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+    });
+
+    const { lockResult, unlockFunction } = await cacheController.lock(
+      "key",
+      100
+    );
+
+    expect(lockResult).toBe(false);
+    expect(unlockFunction).toBeNull();
+  });
+
+  it("Should trigger a lock with unsuccessfull unlock (local)", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.incr = jest.fn(async () => {
+      return 1;
+    });
+    redis.pexpire = jest.fn(async () => {
+      return 1;
+    });
+    redis.del = jest.fn(async () => {
+      throw new Error("oops");
+    });
+
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+    });
+
+    const { lockResult, unlockFunction } = await cacheController.lock(
+      "key",
+      100
+    );
+
+    expect(lockResult).toBe(true);
+    expect(unlockFunction).toBeInstanceOf(Object);
+  });
+
   it("Should call redis on close (local)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {

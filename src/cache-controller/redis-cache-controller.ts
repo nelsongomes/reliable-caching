@@ -365,9 +365,7 @@ export class RedisCacheController implements ICacheController {
     lockTtlMs: number
   ): Promise<{ lockResult: boolean; unlockFunction: Promise<void> | null }> {
     const result = await this.pub.incr(key);
-
     const lockResult = result === 1;
-    console.log(key, result, lockResult, lockTtlMs);
 
     if (lockResult) {
       // set expire ttl
