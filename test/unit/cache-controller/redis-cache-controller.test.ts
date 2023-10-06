@@ -37,7 +37,7 @@ describe("RedisCacheController", () => {
     expect(redis.xread).toBeCalled();
   });
 
-  it("Should throw an error because there is a request already ongoing", async () => {
+  it("Should throw an error because there is a request already ongoing (local)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -61,7 +61,7 @@ describe("RedisCacheController", () => {
     await requestPromise;
   });
 
-  it("Should call for other instances data", async () => {
+  it("Should call for other instances data (local)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -79,7 +79,7 @@ describe("RedisCacheController", () => {
     expect(redis.xadd).toBeCalledTimes(1);
   });
 
-  it("Should send all data", async () => {
+  it("Should send all data (remote)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -110,7 +110,7 @@ describe("RedisCacheController", () => {
     expect(redis.xadd).toBeCalledTimes(4);
   });
 
-  it("Should receive data if ID matches", async () => {
+  it("Should receive data if ID matches (remote)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -149,7 +149,7 @@ describe("RedisCacheController", () => {
     expect(redis.xread).toBeCalledTimes(2);
   });
 
-  it("Should receive and drop a key on request, but not call storage because storage is not defined", async () => {
+  it("Should receive and drop a key on request, but not call storage because storage is not defined (remote)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -179,7 +179,7 @@ describe("RedisCacheController", () => {
     expect(redis.xread).toBeCalledTimes(2);
   });
 
-  it("Should receive and drop a key on request, but call storage eviction", async () => {
+  it("Should receive and drop a key on request, but call storage eviction (remote)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -211,7 +211,7 @@ describe("RedisCacheController", () => {
     expect(redis.xread).toBeCalledTimes(2);
   });
 
-  it("Should send cache key storage request", async () => {
+  it("Should send cache key storage request (local)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -233,7 +233,7 @@ describe("RedisCacheController", () => {
     );
   });
 
-  it("Should fail gracefully if broadcast key fails", async () => {
+  it("Should fail gracefully if broadcast key fails (local)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -258,7 +258,7 @@ describe("RedisCacheController", () => {
     );
   });
 
-  it("Should receive cache key storage request, but not call storage because storage is not defined", async () => {
+  it("Should receive cache key storage request, but not call storage because storage is not defined (remote)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -291,7 +291,7 @@ describe("RedisCacheController", () => {
     expect(redis.xread).toBeCalledTimes(2);
   });
 
-  it("Should receive request start message request, for distributed race prevention and do nothing because operation was not declared yet", async () => {
+  it("Should receive request start message request, for distributed race prevention and do nothing because operation was not declared yet (remote)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -324,7 +324,7 @@ describe("RedisCacheController", () => {
     expect(redis.xread).toBeCalledTimes(2);
   });
 
-  it("Should receive request start message request, for distributed race prevention and init operation registry", async () => {
+  it("Should receive request start message request, for distributed race prevention and init operation registry (remote)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -361,7 +361,7 @@ describe("RedisCacheController", () => {
     expect(operationRegistry.existsKey("storeme")).toBe(true);
   });
 
-  it("Should receive request end message request, for distributed race prevention and do nothing because start operation was not received", async () => {
+  it("Should receive request end message request, for distributed race prevention and do nothing because start operation was not received (remote)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -396,7 +396,7 @@ describe("RedisCacheController", () => {
     expect(redis.xread).toBeCalledTimes(2);
   });
 
-  it("Should receive request end message request, for distributed race prevention, call pending promises and unlock operation", async () => {
+  it("Should receive request end message request, for distributed race prevention, call pending promises and unlock operation (remote)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -445,7 +445,7 @@ describe("RedisCacheController", () => {
     expect(redis.xadd).toBeCalledTimes(1); // lock
   });
 
-  it("Should receive request end message request, for distributed race prevention, call pending rejects and unlock operation", async () => {
+  it("Should receive request end message request, for distributed race prevention, call pending rejects and unlock operation (remote)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -483,7 +483,7 @@ describe("RedisCacheController", () => {
     expect(redis.xread).toBeCalledTimes(2);
   });
 
-  it("Should request remote cache key eviction", async () => {
+  it("Should request remote cache key eviction (local)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -507,7 +507,7 @@ describe("RedisCacheController", () => {
     );
   });
 
-  it("Should fail gracefully if eviction request fails", async () => {
+  it("Should fail gracefully if eviction request fails (local)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -534,7 +534,7 @@ describe("RedisCacheController", () => {
     );
   });
 
-  it("Should call redis on close", async () => {
+  it("Should call redis on close (local)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
