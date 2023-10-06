@@ -8,6 +8,7 @@ import {
   EvictionKeyRequest,
   LruInMemoryStorage,
   Operation,
+  OperationEndRequest,
   OperationRegistry,
   OperationStartRequest,
   RedisCacheController,
@@ -358,6 +359,128 @@ describe("RedisCacheController", () => {
     // it calls 2 times because constructor already calls listenForMessage
     expect(redis.xread).toBeCalledTimes(2);
     expect(operationRegistry.existsKey("storeme")).toBe(true);
+  });
+
+  it("Should receive request end message request, for distributed race prevention and do nothing because start operation was not received", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.xread = jest.fn(() => {
+      const request: OperationEndRequest = {
+        type: Operation.OperationEnd,
+        requester: "requester",
+        data: {
+          key: "storeme",
+          operation: "operation",
+          error: false,
+          value: JSON.stringify({}),
+        },
+      };
+
+      return [["stream", [["id", ["?", JSON.stringify(request)]]]]];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any;
+
+    const storage = new LruInMemoryStorage({ max: 50 });
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+      storage,
+    });
+
+    await cacheController.listenForMessage(() => false);
+
+    // it calls 2 times because constructor already calls listenForMessage
+    expect(redis.xread).toBeCalledTimes(2);
+  });
+
+  it("Should receive request end message request, for distributed race prevention, call pending promises and unlock operation", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.xread = jest.fn(() => {
+      const request: OperationEndRequest = {
+        type: Operation.OperationEnd,
+        requester: "requester",
+        data: {
+          key: "storeme",
+          operation: "operation",
+          error: false,
+          value: JSON.stringify({}),
+        },
+      };
+
+      return [["stream", [["id", ["?", JSON.stringify(request)]]]]];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any;
+
+    const storage = new LruInMemoryStorage({ max: 50 });
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+      storage,
+    });
+    const unlockCalling = jest.fn() as any;
+
+    // create an artificial lock (this instance is executing the operation)
+    await cacheController.requestOperationEnd(
+      "operation",
+      "storeme",
+      {},
+      false,
+      unlockCalling
+    );
+
+    const operationRegistry = new OperationRegistry("operation");
+    cacheController.setRegistry("operation", operationRegistry);
+
+    await cacheController.listenForMessage(() => false);
+
+    // it calls 2 times because constructor already calls listenForMessage
+    expect(redis.xread).toBeCalledTimes(2);
+    expect(redis.xadd).toBeCalledTimes(1); // lock
+  });
+
+  it("Should receive request end message request, for distributed race prevention, call pending rejects and unlock operation", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.xread = jest.fn(() => {
+      const request: OperationEndRequest = {
+        type: Operation.OperationEnd,
+        requester: "requester",
+        data: {
+          key: "storeme",
+          operation: "operation",
+          error: true,
+          value: JSON.stringify({}),
+        },
+      };
+
+      return [["stream", [["id", ["?", JSON.stringify(request)]]]]];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any;
+
+    const storage = new LruInMemoryStorage({ max: 50 });
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+      storage,
+    });
+
+    const operationRegistry = new OperationRegistry("operation");
+    cacheController.setRegistry("operation", operationRegistry);
+
+    await cacheController.listenForMessage(() => false);
+
+    // it calls 2 times because constructor already calls listenForMessage
+    expect(redis.xread).toBeCalledTimes(2);
   });
 
   it("Should request remote cache key eviction", async () => {
