@@ -50,7 +50,7 @@ describe("RedisCacheController", () => {
     });
 
     // storing promise, putting it running in bg
-    const requestPromise = cacheController.requestCacheStats(1); // no await on purpose, for not blocking
+    const requestPromise = cacheController.requestCacheStats(); // no await on purpose, for not blocking
 
     await expect(async () => {
       // we do second request to trigger error
@@ -596,7 +596,7 @@ describe("RedisCacheController", () => {
     );
   });
 
-  it("Should trigger a lock with successfull unlock (local)", async () => {
+  it("Should obtain a lock with successfull unlock (local)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -626,7 +626,7 @@ describe("RedisCacheController", () => {
     expect(unlockFunction).toBeInstanceOf(Object);
   });
 
-  it("Should fail to trigger a lock", async () => {
+  it("Should fail to obtain a lock", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -656,7 +656,7 @@ describe("RedisCacheController", () => {
     expect(unlockFunction).toBeNull();
   });
 
-  it("Should trigger a lock with unsuccessfull unlock (local)", async () => {
+  it("Should obtain a lock with unsuccessfull unlock (local)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -686,6 +686,24 @@ describe("RedisCacheController", () => {
     expect(unlockFunction).toBeInstanceOf(Object);
   });
 
+  it("Should call unlock function (local)", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.del = jest.fn();
+
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+    });
+
+    await cacheController.unlock("key");
+
+    expect(redis.del).toBeCalledTimes(1);
+  });
+
   it("Should call redis on close (local)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
@@ -702,5 +720,57 @@ describe("RedisCacheController", () => {
     await cacheController.close();
 
     expect(redis.disconnect).toBeCalledTimes(2);
+  });
+
+  it("Should return undefined because operation registry was not initialized (local)", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+    });
+
+    const promise = await cacheController.getOperationPromise<string>(
+      "operation",
+      "key"
+    );
+
+    expect(promise).toBeUndefined();
+  });
+
+  it("Should return promise from operation registry (local)", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+    });
+
+    const operationRegistry = new OperationRegistry("operation");
+    const key = "key";
+    cacheController.setRegistry("operation", operationRegistry);
+
+    // let it know we are starting this operation
+    const startOperation = operationRegistry.isExecuting(key);
+
+    // so that this code receives a promise
+    const promise = cacheController.getOperationPromise<string>(
+      "operation",
+      key
+    );
+
+    expect(startOperation).toBeUndefined(); // first operation does not get a promise
+    expect(promise).toBeInstanceOf(Object); // second operation gets a promise
+
+    // resolve pending promises
+    operationRegistry.triggerAwaitingResolves<string>(key, "a");
   });
 });
