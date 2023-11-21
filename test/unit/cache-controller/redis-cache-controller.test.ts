@@ -8,6 +8,9 @@ import {
   EvictionKeyRequest,
   LruInMemoryStorage,
   Operation,
+  OperationEndRequest,
+  OperationRegistry,
+  OperationStartRequest,
   RedisCacheController,
 } from "../../../src";
 
@@ -34,7 +37,7 @@ describe("RedisCacheController", () => {
     expect(redis.xread).toBeCalled();
   });
 
-  it("Should throw an error because there is a request already ongoing", async () => {
+  it("Should throw an error because there is a request already ongoing (local)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -47,7 +50,7 @@ describe("RedisCacheController", () => {
     });
 
     // storing promise, putting it running in bg
-    const requestPromise = cacheController.requestCacheStats(1); // no await on purpose, for not blocking
+    const requestPromise = cacheController.requestCacheStats(); // no await on purpose, for not blocking
 
     await expect(async () => {
       // we do second request to trigger error
@@ -58,7 +61,7 @@ describe("RedisCacheController", () => {
     await requestPromise;
   });
 
-  it("Should call for other instances data", async () => {
+  it("Should call for other instances data (local)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -76,7 +79,7 @@ describe("RedisCacheController", () => {
     expect(redis.xadd).toBeCalledTimes(1);
   });
 
-  it("Should send all data", async () => {
+  it("Should send all data (remote)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -107,7 +110,7 @@ describe("RedisCacheController", () => {
     expect(redis.xadd).toBeCalledTimes(4);
   });
 
-  it("Should receive data if ID matches", async () => {
+  it("Should receive data if ID matches (remote)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -146,7 +149,7 @@ describe("RedisCacheController", () => {
     expect(redis.xread).toBeCalledTimes(2);
   });
 
-  it("Should receive and drop a key on request, but not call storage because storage is not defined", async () => {
+  it("Should receive and drop a key on request, but not call storage because storage is not defined (remote)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -176,7 +179,7 @@ describe("RedisCacheController", () => {
     expect(redis.xread).toBeCalledTimes(2);
   });
 
-  it("Should receive and drop a key on request, but call storage eviction", async () => {
+  it("Should receive and drop a key on request, but call storage eviction (remote)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -208,7 +211,7 @@ describe("RedisCacheController", () => {
     expect(redis.xread).toBeCalledTimes(2);
   });
 
-  it("Should send cache key storage request", async () => {
+  it("Should send cache key storage request (local)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -230,7 +233,7 @@ describe("RedisCacheController", () => {
     );
   });
 
-  it("Should fail gracefully if broadcast key fails", async () => {
+  it("Should fail gracefully if broadcast key fails (local)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -255,7 +258,7 @@ describe("RedisCacheController", () => {
     );
   });
 
-  it("Should receive cache key storage request, but not call storage because storage is not defined", async () => {
+  it("Should receive cache key storage request, but not call storage because storage is not defined (remote)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -288,7 +291,199 @@ describe("RedisCacheController", () => {
     expect(redis.xread).toBeCalledTimes(2);
   });
 
-  it("Should request remote cache key eviction", async () => {
+  it("Should receive request start message request, for distributed race prevention and do nothing because operation was not declared yet (remote)", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.xread = jest.fn(() => {
+      const request: OperationStartRequest = {
+        type: Operation.OperationStart,
+        requester: "requester",
+        data: {
+          key: "storeme",
+          operation: "operation",
+        },
+      };
+
+      return [["stream", [["id", ["?", JSON.stringify(request)]]]]];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any;
+
+    const storage = new LruInMemoryStorage({ max: 50 });
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+      storage,
+    });
+
+    await cacheController.listenForMessage(() => false);
+
+    // it calls 2 times because constructor already calls listenForMessage
+    expect(redis.xread).toBeCalledTimes(2);
+  });
+
+  it("Should receive request start message request, for distributed race prevention and init operation registry (remote)", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.xread = jest.fn(() => {
+      const request: OperationStartRequest = {
+        type: Operation.OperationStart,
+        requester: "requester",
+        data: {
+          key: "storeme",
+          operation: "operation",
+        },
+      };
+
+      return [["stream", [["id", ["?", JSON.stringify(request)]]]]];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any;
+
+    const storage = new LruInMemoryStorage({ max: 50 });
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+      storage,
+    });
+
+    const operationRegistry = new OperationRegistry("operation");
+    cacheController.setRegistry("operation", operationRegistry);
+
+    await cacheController.listenForMessage(() => false);
+
+    // it calls 2 times because constructor already calls listenForMessage
+    expect(redis.xread).toBeCalledTimes(2);
+    expect(operationRegistry.existsKey("storeme")).toBe(true);
+  });
+
+  it("Should receive request end message request, for distributed race prevention and do nothing because start operation was not received (remote)", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.xread = jest.fn(() => {
+      const request: OperationEndRequest = {
+        type: Operation.OperationEnd,
+        requester: "requester",
+        data: {
+          key: "storeme",
+          operation: "operation",
+          error: false,
+          value: JSON.stringify({}),
+        },
+      };
+
+      return [["stream", [["id", ["?", JSON.stringify(request)]]]]];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any;
+
+    const storage = new LruInMemoryStorage({ max: 50 });
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+      storage,
+    });
+
+    await cacheController.listenForMessage(() => false);
+
+    // it calls 2 times because constructor already calls listenForMessage
+    expect(redis.xread).toBeCalledTimes(2);
+  });
+
+  it("Should receive request end message request, for distributed race prevention, call pending promises and unlock operation (remote)", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.xread = jest.fn(() => {
+      const request: OperationEndRequest = {
+        type: Operation.OperationEnd,
+        requester: "requester",
+        data: {
+          key: "storeme",
+          operation: "operation",
+          error: false,
+          value: JSON.stringify({}),
+        },
+      };
+
+      return [["stream", [["id", ["?", JSON.stringify(request)]]]]];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any;
+
+    const storage = new LruInMemoryStorage({ max: 50 });
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+      storage,
+    });
+    const unlockCalling = jest.fn() as any;
+
+    // create an artificial lock (this instance is executing the operation)
+    await cacheController.requestOperationEnd(
+      "operation",
+      "storeme",
+      {},
+      false,
+      unlockCalling
+    );
+
+    const operationRegistry = new OperationRegistry("operation");
+    cacheController.setRegistry("operation", operationRegistry);
+
+    await cacheController.listenForMessage(() => false);
+
+    // it calls 2 times because constructor already calls listenForMessage
+    expect(redis.xread).toBeCalledTimes(2);
+    expect(redis.xadd).toBeCalledTimes(1); // lock
+  });
+
+  it("Should receive request end message request, for distributed race prevention, call pending rejects and unlock operation (remote)", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.xread = jest.fn(() => {
+      const request: OperationEndRequest = {
+        type: Operation.OperationEnd,
+        requester: "requester",
+        data: {
+          key: "storeme",
+          operation: "operation",
+          error: true,
+          value: JSON.stringify({}),
+        },
+      };
+
+      return [["stream", [["id", ["?", JSON.stringify(request)]]]]];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    }) as any;
+
+    const storage = new LruInMemoryStorage({ max: 50 });
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+      storage,
+    });
+
+    const operationRegistry = new OperationRegistry("operation");
+    cacheController.setRegistry("operation", operationRegistry);
+
+    await cacheController.listenForMessage(() => false);
+
+    // it calls 2 times because constructor already calls listenForMessage
+    expect(redis.xread).toBeCalledTimes(2);
+  });
+
+  it("Should request remote cache key eviction (local)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -312,7 +507,7 @@ describe("RedisCacheController", () => {
     );
   });
 
-  it("Should fail gracefully if eviction request fails", async () => {
+  it("Should fail gracefully if eviction request fails (local)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -339,7 +534,177 @@ describe("RedisCacheController", () => {
     );
   });
 
-  it("Should call redis on close", async () => {
+  it("Should send operation start (local)", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.xadd = jest.fn(async () => {
+      throw new Error("fail");
+    });
+
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+    });
+
+    await cacheController.requestOperationStart("operation", "key");
+
+    expect(redis.xadd).toBeCalledWith(
+      "stream",
+      "*",
+      "data",
+      expect.stringMatching(
+        '{"type":"operation-start","data":{"operation":"operation","key":"key"},"requester":"[a-f0-9-]+"}'
+      )
+    );
+  });
+
+  it("Should send operation end (local)", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.xadd = jest.fn(async () => {
+      throw new Error("fail");
+    });
+
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+    });
+
+    await cacheController.requestOperationEnd(
+      "operation",
+      "key",
+      {},
+      false,
+      new Promise((resolve) => {
+        resolve();
+      })
+    );
+
+    expect(redis.xadd).toBeCalledWith(
+      "stream",
+      "*",
+      "data",
+      expect.stringMatching(
+        '{"type":"operation-end","data":{"operation":"operation","key":"key","value":"{}","error":false},"requester":"[a-f0-9-]+"}'
+      )
+    );
+  });
+
+  it("Should obtain a lock with successfull unlock (local)", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.incr = jest.fn(async () => {
+      return 1;
+    });
+    redis.pexpire = jest.fn(async () => {
+      return 1;
+    });
+    redis.del = jest.fn(async () => {
+      return 1;
+    });
+
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+    });
+
+    const { lockResult, unlockFunction } = await cacheController.lock(
+      "key",
+      100
+    );
+
+    expect(lockResult).toBe(true);
+    expect(unlockFunction).toBeInstanceOf(Object);
+  });
+
+  it("Should fail to obtain a lock", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.incr = jest.fn(async () => {
+      return 2;
+    });
+    redis.pexpire = jest.fn(async () => {
+      return 1;
+    });
+    redis.del = jest.fn(async () => {
+      return 1;
+    });
+
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+    });
+
+    const { lockResult, unlockFunction } = await cacheController.lock(
+      "key",
+      100
+    );
+
+    expect(lockResult).toBe(false);
+    expect(unlockFunction).toBeNull();
+  });
+
+  it("Should obtain a lock with unsuccessfull unlock (local)", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.incr = jest.fn(async () => {
+      return 1;
+    });
+    redis.pexpire = jest.fn(async () => {
+      return 1;
+    });
+    redis.del = jest.fn(async () => {
+      throw new Error("oops");
+    });
+
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+    });
+
+    const { lockResult, unlockFunction } = await cacheController.lock(
+      "key",
+      100
+    );
+
+    expect(lockResult).toBe(true);
+    expect(unlockFunction).toBeInstanceOf(Object);
+  });
+
+  it("Should call unlock function (local)", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.del = jest.fn();
+
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+    });
+
+    await cacheController.unlock("key");
+
+    expect(redis.del).toBeCalledTimes(1);
+  });
+
+  it("Should call redis on close (local)", async () => {
     const redis = new Redis();
     redis.duplicate = jest.fn(() => {
       return redis;
@@ -355,5 +720,57 @@ describe("RedisCacheController", () => {
     await cacheController.close();
 
     expect(redis.disconnect).toBeCalledTimes(2);
+  });
+
+  it("Should return undefined because operation registry was not initialized (local)", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+    });
+
+    const promise = await cacheController.getOperationPromise<string>(
+      "operation",
+      "key"
+    );
+
+    expect(promise).toBeUndefined();
+  });
+
+  it("Should return promise from operation registry (local)", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+
+    const cacheController = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+    });
+
+    const operationRegistry = new OperationRegistry("operation");
+    const key = "key";
+    cacheController.setRegistry("operation", operationRegistry);
+
+    // let it know we are starting this operation
+    const startOperation = operationRegistry.isExecuting(key);
+
+    // so that this code receives a promise
+    const promise = cacheController.getOperationPromise<string>(
+      "operation",
+      key
+    );
+
+    expect(startOperation).toBeUndefined(); // first operation does not get a promise
+    expect(promise).toBeInstanceOf(Object); // second operation gets a promise
+
+    // resolve pending promises
+    operationRegistry.triggerAwaitingResolves<string>(key, "a");
   });
 });

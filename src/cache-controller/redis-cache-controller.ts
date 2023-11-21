@@ -232,20 +232,23 @@ export class RedisCacheController implements ICacheController {
             message.data.operation
           );
 
-          if (operationRegistry) {
-            if (message.data.error === false) {
-              // resolves all pending promises
-              operationRegistry.triggerAwaitingResolves(
-                message.data.key,
-                message.data.value
-              );
-            } else {
-              // throws all pending promises
-              operationRegistry.triggerAwaitingRejects(
-                message.data.key,
-                message.data.value // TODO deserializeError(message.data.value),
-              );
-            }
+          if (!operationRegistry) {
+            // we havent recorded the start, so we discard the end message
+            return;
+          }
+
+          if (message.data.error === false) {
+            // resolves all pending promises
+            operationRegistry.triggerAwaitingResolves(
+              message.data.key,
+              message.data.value
+            );
+          } else {
+            // throws all pending promises
+            operationRegistry.triggerAwaitingRejects(
+              message.data.key,
+              message.data.value // TODO deserializeError(message.data.value),
+            );
           }
 
           // get some time for eventloop (and give some time for other instances to process message too)
@@ -362,9 +365,7 @@ export class RedisCacheController implements ICacheController {
     lockTtlMs: number
   ): Promise<{ lockResult: boolean; unlockFunction: Promise<void> | null }> {
     const result = await this.pub.incr(key);
-
     const lockResult = result === 1;
-    console.log(key, result, lockResult, lockTtlMs);
 
     if (lockResult) {
       // set expire ttl
