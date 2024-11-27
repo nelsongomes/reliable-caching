@@ -44,7 +44,6 @@
   },
   "dependencies": {
     "http-errors": "2.0.0",
-    "immutable": "4.1.0",
     "ioredis": "5.0.6",
     "lru-cache": "7.12.0",
     "pino-std-serializers": "6.2.1",
@@ -53,8 +52,7 @@
   "devDependencies": {
     "@types/http-errors": "2.0.1",
     "@types/jest": "26.0.23",
-    "@types/lru-cache": "7.10.10",
-    "@types/node": "16.x",
+    "@types/node": "18.x",
     "@typescript-eslint/eslint-plugin": "4.22.1",
     "@typescript-eslint/parser": "4.22.1",
     "eslint": "7.25.0",
@@ -68,7 +66,7 @@
     "ts-jest": "29.1.0",
     "ts-node": "10.9.1",
     "typedoc": "0.23.17",
-    "typescript": "4.7.4"
+    "typescript": "5.7.2"
   },
   "lint-staged": {
     "*.{ts,js,json,md,yml}": [

@@ -145,7 +145,11 @@ export class GenericManager implements IManagement {
     }
 
     try {
-      if (this.options.broadcast) {
+      // when concurrency is distributed we don't need to broadcast cache keys, data goes on operationEnd
+      if (
+        this.options.broadcast &&
+        this.options.concurrency !== ConcurrencyControl.Distributed
+      ) {
         // broadcast cache content
         await this.controller.broadcastCacheKey(
           key,
