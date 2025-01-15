@@ -10,7 +10,9 @@ An ongoing project focused on reliable caching in Node<br/>
 
 - [Instalation](#instalation)
 - [Documentation](#documentation)
-	- [Key Generation](docs/KEY-GENERATION.md)
+	- [Key Generation](KEY-GENERATION.md)
+	- [Cache Signing](CACHE-SIGN.md)
+	- [URL Signing](URL-SIGN.md)
 - [Articles](#articles)
 
 

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { SignManager } from "../../../src";
 
 describe("SignManager", () => {
@@ -61,6 +60,119 @@ describe("SignManager", () => {
           "getCustomer#v1:service=unknown:owner=public:companyName=name:user=123"
         )
       ).toThrow("Invalid cache key format.");
+    });
+
+    it("Should sign an URL parameter, order independent", async () => {
+      const testKey = "orderIndepKey";
+      SignManager.addKey(testKey, "secret1");
+
+      expect(
+        SignManager.signUrlParams(
+          {
+            getCustomer: 123,
+            companyId: "abc",
+          },
+          testKey
+        )
+      ).toBe("rck=orderIndepKey&rks=726f21f558c8f03facab2729d98d8da93ecb8c3c");
+
+      expect(
+        SignManager.signUrlParams(
+          {
+            companyId: "abc",
+            getCustomer: 123,
+          },
+          testKey
+        )
+      ).toBe("rck=orderIndepKey&rks=726f21f558c8f03facab2729d98d8da93ecb8c3c");
+    });
+
+    it("Different signing keys produce different output", async () => {
+      SignManager.addKey("keyA", "keyA");
+      SignManager.addKey("keyB", "keyB");
+
+      expect(
+        SignManager.signUrlParams(
+          {
+            getCustomer: 123,
+            companyId: "abc",
+          },
+          "keyA"
+        )
+      ).not.toBe(
+        SignManager.signUrlParams(
+          {
+            getCustomer: 123,
+            companyId: "abc",
+          },
+          "keyB"
+        )
+      );
+    });
+
+    it("verifySignedUrlParams should return false if content tampered, signature tampered or key tampered", async () => {
+      const testKey = "tamperedContent";
+      SignManager.addKey(testKey, "secret1");
+
+      expect(
+        SignManager.verifySignedUrlParams(
+          {
+            companyId: "abcd", // content tampered
+            getCustomer: 123,
+          },
+          testKey,
+          "c96f535c21f51ab39719a28a86c5cc3035762975fd23567ea82d601d2caabe4c"
+        )
+      ).toBe(false);
+
+      expect(
+        SignManager.verifySignedUrlParams(
+          {
+            companyId: "abc",
+            getCustomer: 123,
+          },
+          testKey,
+          "c96f535c21f51ab39719a28a86c5cc3035762975fd23567ea82d601d2caabe4d" // signature tampered
+        )
+      ).toBe(false);
+
+      expect(
+        SignManager.verifySignedUrlParams(
+          {
+            companyId: "abc",
+            getCustomer: 123,
+          },
+          "testKey", // key tampered
+          "c96f535c21f51ab39719a28a86c5cc3035762975fd23567ea82d601d2caabe4d"
+        )
+      ).toBe(false);
+    });
+
+    it("verifySignedUrlParams should return false key or signature are missing", async () => {
+      const testKey = "missingContentKey";
+      SignManager.addKey(testKey, "secret1");
+
+      expect(
+        SignManager.verifySignedUrlParams(
+          {
+            companyId: "abcd",
+            getCustomer: 123,
+          },
+          null, // key missing
+          "c96f535c21f51ab39719a28a86c5cc3035762975fd23567ea82d601d2caabe4c"
+        )
+      ).toBe(false);
+
+      expect(
+        SignManager.verifySignedUrlParams(
+          {
+            companyId: "abcd",
+            getCustomer: 123,
+          },
+          testKey,
+          null // signature missing
+        )
+      ).toBe(false);
     });
   });
 });
