@@ -35,7 +35,7 @@ This example signs content that goes into cache with a signature. This is a gene
 ```ts
 // sign content
 const signatureInfo = SignManager.signUrlParams(
-  { product: 123 }, // you should put here all values that you need to be protected
+  { product: 123 }, // you should put here all values that you need to protect
   "myPrivateKey"
 );
 
@@ -47,7 +47,7 @@ const signatureInfo = SignManager.signUrlParams(
 
 ## Verifying URL request
 
-This example validates content retrived from cache. This is a generic example that requires you to implement your store function.
+This example validates content retrieved from cache. This is a generic example that requires you to implement your store function.
 
 ```ts
 // URL requested > https://site.com/product/123?rck=myPrivateKey&rks=c96f535c21f51(...)
