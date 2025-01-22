@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- First public documentation added
+- Added methods for URL signing and cache signing
+
 ## [0.1.2] - 2023-06-07
 
 ### Added
