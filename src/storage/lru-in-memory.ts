@@ -1,4 +1,5 @@
 import LRU from "lru-cache";
+import { StorageWrapper, deepFreeze } from ".";
 import { ICacheStorage } from "./storage-interface";
 
 export class LruInMemoryStorage implements ICacheStorage {
@@ -18,7 +19,9 @@ export class LruInMemoryStorage implements ICacheStorage {
    * @returns
    */
   async get<T>(key: string): Promise<T | undefined> {
-    return this.cache.get(key);
+    const wrapper: StorageWrapper<T> | undefined = this.cache.get(key);
+
+    return wrapper?.value;
   }
 
   /**
@@ -28,7 +31,12 @@ export class LruInMemoryStorage implements ICacheStorage {
    * @param value value to store
    */
   async set<T>(key: string, ttlMilliseconds: number, value: T): Promise<void> {
-    this.cache.set(key, value, { ttl: ttlMilliseconds });
+    const wrapper: StorageWrapper<T> = {
+      value,
+    };
+
+    // this forces in memory object not to be changed
+    this.cache.set(key, deepFreeze(wrapper), { ttl: ttlMilliseconds });
   }
 
   /**

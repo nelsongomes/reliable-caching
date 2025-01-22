@@ -30,13 +30,13 @@ export class KeyGenerator {
     schemaVersion = 1,
     operation,
     service = "unknown",
-    dataOwner,
+    dataOwner = DataOwner.PublicData,
     signingKeyId,
   }: {
     schemaVersion?: number;
     operation: string;
     service?: string;
-    dataOwner: DataOwner;
+    dataOwner?: DataOwner;
     signingKeyId?: string;
   }): (values: T) => string {
     const constantString = `${

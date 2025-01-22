@@ -62,6 +62,11 @@ export class GenericManager implements IManagement {
       key: string,
       ...innerArgs: P
     ): Promise<Awaited<R>> => {
+      this.options.log(
+        LogLevel.Info,
+        `Using ${ConcurrencyControl.Distributed} mode`
+      );
+
       switch (this.options.concurrency) {
         case ConcurrencyControl.Distributed:
           return await this.distributedConcurrencyFlow<R, P>(
@@ -140,7 +145,11 @@ export class GenericManager implements IManagement {
     }
 
     try {
-      if (this.options.broadcast) {
+      // when concurrency is distributed we don't need to broadcast cache keys, data goes on operationEnd
+      if (
+        this.options.broadcast &&
+        this.options.concurrency !== ConcurrencyControl.Distributed
+      ) {
         // broadcast cache content
         await this.controller.broadcastCacheKey(
           key,
