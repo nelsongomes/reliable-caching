@@ -1,7 +1,11 @@
 # Race Prevention
 
-For highly concurrent services, race prevention is a must, it prevents stampede for commonly used resources, specially when cache is empty, helping for system to recover faster and less requests to me made for APIs, databases.
+For highly concurrent services, race prevention is a must, it prevents stampede for commonly used resources, specially when cache is empty, helping for system to recover faster and less requests to me made for APIs, databases or any other resource. It implements what some call, **singleflight pattern**.
+
 Race prevention creates a lookup table for all different tasks being run for an operation, if a given task is already being run, then we don't need to run it again, we just wait for the ongoing operation reply. If an operation takes 100ms to run and a second operation awaits for the same outcome but enters on 99th ms then it will run in just 1ms, making all tasks that await to run on average in half of the time of the original task, which is great, less resource usage and faster execution times.
+
+**Also keep in mind that any output will be shared across all awaiting promises, so if you change any of the output don't forget to clone it before doing the change.**
+
 In the example below, we are focusing on per instance race prevention, meaning you will only save time if same task ends on the same instance multiple times during execution time.
 
 ## Table of Contents

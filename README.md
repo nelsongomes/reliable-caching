@@ -10,10 +10,11 @@ An ongoing project focused on reliable caching in Node<br/>
 
 - [Instalation](#instalation)
 - [Documentation](#documentation)
-	- [Key Generation](KEY-GENERATION.md)
-	- [Cache Signing](CACHE-SIGN.md)
-	- [URL Signing](URL-SIGN.md)
-	- [Race Preventition (single instance)](RACE-PREVENTION.md)
+	- [Key Generation](documentation/KEY-GENERATION.md)
+	- [URL Signing](documentation/URL-SIGN.md)
+	- [Cache Signing](documentation/CACHE-SIGN.md)
+	- [Cache Benchmarking (single instance)](documentation/CACHE-BENCH.md)
+	- [Race Prevention (single instance)](documentation/RACE-PREVENTION.md)
 - [Articles](#articles)
 
 

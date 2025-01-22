@@ -26,10 +26,10 @@ export class SignManager {
     }
 
     const hmac = createHmac(
-      short === false
-        ? "sha256"
-        : // shorter hash for URL usage
-          "rmd160",
+      short === true
+        ? // shorter hash for URL usage
+          "rmd160"
+        : "sha256",
       key
     );
 
@@ -39,9 +39,10 @@ export class SignManager {
   public static verifySignedContent(
     content: string,
     keyId: string,
-    signature: string
+    signature: string,
+    short = false
   ): boolean {
-    return SignManager.signContent(content, keyId) === signature;
+    return SignManager.signContent(content, keyId, short) === signature;
   }
 
   public static obtainKey(cacheKey: string): string {
@@ -50,6 +51,27 @@ export class SignManager {
     }
 
     throw new Error("Invalid cache key format.");
+  }
+
+  public static signUrlParamsObj(
+    urlParams: {
+      [key: string]:
+        | string
+        | number
+        | boolean
+        | string[]
+        | number[]
+        | boolean[];
+    },
+    keyId: string
+  ): { rck: string; rcs: string } {
+    const signature = SignManager.signContent(
+      SignManager.sortSearchParams(urlParams),
+      keyId,
+      true
+    );
+
+    return { rck: keyId, rcs: signature };
   }
 
   public static signUrlParams(
@@ -64,15 +86,9 @@ export class SignManager {
     },
     keyId: string
   ): string {
-    const signature = SignManager.signContent(
-      SignManager.sortSearchParams(urlParams),
-      keyId,
-      true
-    );
+    const { rck, rcs } = SignManager.signUrlParamsObj(urlParams, keyId);
 
-    return `rck=${encodeURIComponent(keyId)}&rks=${encodeURIComponent(
-      signature
-    )}`;
+    return `rck=${encodeURIComponent(rck)}&rks=${encodeURIComponent(rcs)}`;
   }
 
   private static sortSearchParams(urlParams: {
@@ -111,7 +127,8 @@ export class SignManager {
       return SignManager.verifySignedContent(
         SignManager.sortSearchParams(urlParams),
         rck,
-        rks
+        rks,
+        true
       );
     } catch (e) {
       return false;

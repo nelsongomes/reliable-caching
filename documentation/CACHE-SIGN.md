@@ -1,8 +1,8 @@
-# Sign Content
+# Cache Signing
 
 Caching is very important component of Internet and web servers would not run fast enough without caches. But caches can also be tampered with (cache poisoning), if a hacker can access you cache server (Memcache, Redis, ...) somehow then all stored data can be altered even without compromising your database or your web servers.
-So, for very important data, the extra cost of verifying integrity makes sense: medical data, bank account information, any high value information.
-These signatures are in fact just hashes with a secret part ([HMAC](https://pt.wikipedia.org/wiki/HMAC)), which guarantee integrity and authenticity. This techniques allows to detect any data tampering.
+
+So, for very important data, the extra cost of verifying integrity makes sense: medical data, bank account information, any high value information. These signatures are in fact just hashes with a secret part ([HMAC](https://pt.wikipedia.org/wiki/HMAC)), which guarantee integrity and authenticity. This techniques allows to detect any data tampering. Below examples make use of SHA256 hashing function.
 
 Also, keep in mind, that signing will make your application more secure, but cache will become a little slower though nowadays CPU power is far more affordable. Use this technique in situations that justify the extra CPU cost.
 

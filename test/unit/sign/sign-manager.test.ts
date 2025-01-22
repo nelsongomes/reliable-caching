@@ -110,9 +110,41 @@ describe("SignManager", () => {
       );
     });
 
+    it("verifySignedUrlParams should return true if signature matches", async () => {
+      const testKey = "contentMatchinKey";
+      SignManager.addKey(testKey, "secret1");
+
+      const signature = SignManager.signUrlParams(
+        {
+          companyId: "abcd",
+          getCustomer: 123,
+        },
+        testKey
+      );
+
+      expect(
+        SignManager.verifySignedUrlParams(
+          {
+            companyId: "abcd",
+            getCustomer: 123,
+          },
+          testKey,
+          signature.substring(signature.indexOf("&rks=") + 5)
+        )
+      ).toBe(true);
+    });
+
     it("verifySignedUrlParams should return false if content tampered, signature tampered or key tampered", async () => {
       const testKey = "tamperedContent";
       SignManager.addKey(testKey, "secret1");
+
+      const signature = SignManager.signUrlParams(
+        {
+          companyId: "abc",
+          getCustomer: 123,
+        },
+        testKey
+      );
 
       expect(
         SignManager.verifySignedUrlParams(
@@ -121,7 +153,7 @@ describe("SignManager", () => {
             getCustomer: 123,
           },
           testKey,
-          "c96f535c21f51ab39719a28a86c5cc3035762975fd23567ea82d601d2caabe4c"
+          signature.substring(signature.indexOf("&rks=") + 5)
         )
       ).toBe(false);
 
@@ -132,7 +164,7 @@ describe("SignManager", () => {
             getCustomer: 123,
           },
           testKey,
-          "c96f535c21f51ab39719a28a86c5cc3035762975fd23567ea82d601d2caabe4d" // signature tampered
+          signature.substring(signature.indexOf("&rks=") + 5) + "a" // signature tampered
         )
       ).toBe(false);
 
@@ -143,7 +175,7 @@ describe("SignManager", () => {
             getCustomer: 123,
           },
           "testKey", // key tampered
-          "c96f535c21f51ab39719a28a86c5cc3035762975fd23567ea82d601d2caabe4d"
+          signature.substring(signature.indexOf("&rks=") + 5)
         )
       ).toBe(false);
     });
@@ -152,6 +184,14 @@ describe("SignManager", () => {
       const testKey = "missingContentKey";
       SignManager.addKey(testKey, "secret1");
 
+      const signature = SignManager.signUrlParams(
+        {
+          companyId: "abc",
+          getCustomer: 123,
+        },
+        testKey
+      );
+
       expect(
         SignManager.verifySignedUrlParams(
           {
@@ -159,7 +199,7 @@ describe("SignManager", () => {
             getCustomer: 123,
           },
           null, // key missing
-          "c96f535c21f51ab39719a28a86c5cc3035762975fd23567ea82d601d2caabe4c"
+          signature.substring(signature.indexOf("&rks="))
         )
       ).toBe(false);
 

@@ -27,7 +27,7 @@ async function main() {
   const isVerified = SignManager.verifySignedUrlParams(
     cacheKeyParams,
     "myPrivateKey", // rck
-    "552928a7346de7e8778e3f7514bcb7bce34850d42a005b9312193a39b4cf48c1" // rks
+    "dc44d1be11ff0db72ad71a644e586d1d3935bba4" // rks
   );
 
   if (isVerified) {
