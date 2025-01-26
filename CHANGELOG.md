@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added documentation about storage implementations
+- Added RedisStorage implementation
+
 ## [0.1.3] - 2025-01-22
 
 ### Added
