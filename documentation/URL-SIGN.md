@@ -15,6 +15,7 @@ For URL signatures we use RIPEMD-160 hash function because it produces a smaller
 - [Declaring your keys](#declaring-your-keys)
 - [Signing URL data](#signing-url-data)
 - [Verifying URL request](#verifying-url-request)
+- [Custom URLs](#custom-urls)
 
 <!-- prettier-ignore-end -->
 
@@ -67,6 +68,22 @@ if (!isSigned) {
 
 // request is good
 handleRequest(context);
+```
+
+## Custom URLs
+
+In case you prefer to use your custom built URL without using signUrlParams string you can use signUrlParamsObj which returns an object that you can use to generate your custom URLs. This way, for example you can use only signature, assuming that all URLs use same signing key.
+
+```ts
+// sign content
+const signatureInfo = SignManager.signUrlParamsObj(
+  { product: 123 }, // you should put here all values that you need to protect
+  "myPrivateKey"
+);
+
+// which will return something like
+// { rck: 'myPrivateKey'; rcs: 'c96f535c21f51(...)' }
+// so you can format your URL like https://site.com/product/{rcs}/123
 ```
 
 ### Visit the [GitHub Repo](https://github.com/nelsongomes/reliable-caching/) tutorials, documentation, and support

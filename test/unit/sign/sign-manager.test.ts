@@ -54,12 +54,12 @@ describe("SignManager", () => {
       ).toBe("key1");
     });
 
-    it("Should throw if a key is not found", async () => {
-      expect(() =>
+    it("Should return undefined if cache key is not found", async () => {
+      expect(
         SignManager.obtainKey(
           "getCustomer#v1:service=unknown:owner=public:companyName=name:user=123"
         )
-      ).toThrow("Invalid cache key format.");
+      ).toBeUndefined();
     });
 
     it("Should sign an URL parameter, order independent", async () => {

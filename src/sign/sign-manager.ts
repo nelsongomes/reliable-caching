@@ -45,12 +45,13 @@ export class SignManager {
     return SignManager.signContent(content, keyId, short) === signature;
   }
 
-  public static obtainKey(cacheKey: string): string {
+  /** This function determines if a cache key contains a signing key.
+   * @param cacheKey
+   */
+  public static obtainKey(cacheKey: string): string | undefined {
     if (cacheKey.startsWith("!!!") && cacheKey.indexOf(":") > 3) {
       return cacheKey.substring(3, cacheKey.indexOf(":"));
     }
-
-    throw new Error("Invalid cache key format.");
   }
 
   public static signUrlParamsObj(

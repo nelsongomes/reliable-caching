@@ -18,14 +18,11 @@ This example is focused on a per instance data, and data provided is from last 9
 
 We provide 3 metrics:
 
-** Hit Ratio**
-Which declares a ratio obtained by diving hits/(hits+misses) and indicates which percentage of times a cache content was found. But it doesn't provide any information if the code was actually faster and how much or much time did we save with a cache.
+**Hit Ratio** which declares a ratio obtained by diving hits/(hits+misses) and indicates which percentage of times a cache content was found. But it doesn't provide any information if the code was actually faster and how much or much time did we save with a cache.
 
-** Performance Gain**
-Which gives you a ratio of (avg miss time)/(avg hit time) indicates how much faster your application is due to to cache use.
+**Performance Gain** which gives you a ratio of (avg miss time)/(avg hit time) indicates how much faster your application is due to to cache use.
 
-** Time Saved Ratio**
-Which indicates how much time have your code actually saved (avg time saved)/(avg miss time), because even if you have a 99.9% hit ratio on cache, that does mean your code is faster, it means content was found plenty of times in cache.
+**Time Saved Ratio** which indicates how much time have your code actually saved (avg time saved)/(avg miss time), because even if you have a 99.9% hit ratio on cache, that does mean your code is faster, it means content was found plenty of times in cache.
 
 Read more about it here: [Drop hit ratio as cache measure, now!](https://medium.com/pipedrive-engineering/drop-hit-ratio-as-cache-measure-now-98970238dbbf).
 
