@@ -92,6 +92,32 @@ describe("Redis", () => {
     ).toBe(content.value);
   });
 
+  it("Should return undefined, on JSON deserialize failure", async () => {
+    const content: StorageWrapper<string> = { value: "value" };
+    const serializedContent = JSON.stringify(content).substring(10);
+
+    const redis = new Redis();
+    redis.get = jest.fn<Promise<string | null>, [string]>(() => {
+      return Promise.resolve(serializedContent);
+    });
+
+    const cacheKeyFn = KeyGenerator.keyFactory<{
+      someId: number;
+    }>({
+      // keyFactory arguments
+      operation: "someOperation",
+    });
+
+    const storage = new RedisStorage(redis);
+
+    const key = cacheKeyFn({ someId: 1 });
+
+    expect(
+      // because of the signing key, the content will be signed
+      await storage.get<string>(key)
+    ).toBeUndefined();
+  });
+
   it("Should verify signed content if key contains a signing key, return undefined on signature mismatch", async () => {
     const signingKeyId = "signingKeyGetBadSignature";
     SignManager.addKey(signingKeyId, "secret");

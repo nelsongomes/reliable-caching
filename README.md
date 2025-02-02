@@ -17,6 +17,7 @@ These ideas are being compiled into a book focused mainly on reliable caching fo
 	- [Cache Storage Implementations](#storage-implementations)
 	- [Cache Signing](documentation/CACHE-SIGN.md)
 	- [Cache Benchmarking (single instance)](documentation/CACHE-BENCH.md)
+	- [Cache Benchmarking (distributed)](documentation/CACHE-BENCH-DIST.md)
 	- [Race Prevention (single instance)](documentation/RACE-PREVENTION.md)
 - [Articles](#articles)
 
@@ -28,6 +29,8 @@ Using npm:
 `npm i --save reliable-caching`
 
 ## Storage Implementations
+
+All implemententations below handle things like, immutability of cache objects (important for not alter cache content), handle deserialization errors (handled as a miss), signature failures (handled as a miss) making code more robust than those quickly made hacks developers do.
 
 - [In Memory LRU](documentation/LRU.md) provides object immutability, no cache signature
 - [Redis](documentation/REDIS.md) provides object immutability, cache signature

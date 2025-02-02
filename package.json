@@ -16,8 +16,15 @@
     "node",
     "cache",
     "caching",
+    "cache signing",
+    "cache poisoning",
+    "cache benchmarking",
     "reliable",
-    "hit-ratio"
+    "hit-ratio",
+    "redis",
+    "lru",
+    "singleflight",
+    "key generation"
   ],
   "engines": {
     "node": ">=16"

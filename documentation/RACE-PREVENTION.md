@@ -67,7 +67,7 @@ async function callingFunction(a: number, b: number): Promise<number> {
 
 ## Test it yourself
 
-So, if you run test code, you will see that function was called only 2 (2 different keys), but you get 6 results.
+So, if you run test code, you will see that function was called only twice (2 different keys), but you get 6 results due to 6 function calls.
 
 IMPORTANT:
 
