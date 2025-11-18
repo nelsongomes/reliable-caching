@@ -44,16 +44,21 @@ export class RedisStorage implements ICacheStorage {
         cachedContent = content;
       }
 
-      const wrapper: StorageWrapper<T> | undefined = (JSON.parse(
-        cachedContent
-      ) as unknown) as StorageWrapper<T>;
+      try {
+        const wrapper: StorageWrapper<T> | undefined = (JSON.parse(
+          cachedContent
+        ) as unknown) as StorageWrapper<T>;
 
-      // this forces in memory object not to be changed between instances
-      if (immutable) {
-        deepFreeze(wrapper);
+        // this forces in memory object not to be changed between instances
+        if (immutable) {
+          deepFreeze(wrapper);
+        }
+
+        return wrapper?.value;
+      } catch (e) {
+        // treat JSON parse error as cache miss
+        return undefined;
       }
-
-      return wrapper?.value;
     }
   }
 

@@ -14,6 +14,7 @@ In the example below, we are focusing on per instance race prevention, meaning y
 
 - [Declaring your operation](#declaring-your-operation)
 - [Wrap you original function](#wrap-you-original-function)
+- [Wrap with extra safety](#wrap-secure)
 - [Test it yourself](#verifying-url-request)
 
 <!-- prettier-ignore-end -->
@@ -65,9 +66,47 @@ async function callingFunction(a: number, b: number): Promise<number> {
 }
 ```
 
+## Wrap with extra safety
+
+This example has a very important difference from the previous one. It prevents object from being changed to prevent runtime tainting.
+
+```ts
+// our data fetching function, could be an API call, db query, whatever slow promise needed
+async function costlyFunction(a: number, b: number): Promise<number> {
+  await delay(200);
+  console.log("generated");
+
+  return a * b;
+}
+
+async function callingFunction(a: number, b: number): Promise<number> {
+  const uniqueOperationKey = `${a}:${b}`;
+
+  const promiseForResult = operationRegistry.isExecuting<number>(
+    uniqueOperationKey
+  );
+
+  if (promiseForResult) {
+    return promiseForResult;
+  }
+
+  try {
+    const value = await costlyFunction(a, b);
+
+    operationRegistry.triggerAwaitingResolves(uniqueOperationKey, deepFreeze(value));
+
+    return value; // current thread
+  } catch (e) {
+    operationRegistry.triggerAwaitingRejects(uniqueOperationKey, deepFreeze(e));
+
+    throw e; // current thread
+  }
+}
+```
+
 ## Test it yourself
 
-So, if you run test code, you will see that function was called only 2 (2 different keys), but you get 6 results.
+So, if you run test code, you will see that function was called only twice (2 different keys), but you get 6 results due to 6 function calls.
 
 IMPORTANT:
 

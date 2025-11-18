@@ -2,7 +2,7 @@
   "name": "reliable-caching",
   "description": "This package is the code support for book \"Node Reliable Caching\"",
   "author": "Nelson Gomes <nelson.ricardo.gomes@gmail.com>",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -16,8 +16,15 @@
     "node",
     "cache",
     "caching",
+    "cache signing",
+    "cache poisoning",
+    "cache benchmarking",
     "reliable",
-    "hit-ratio"
+    "hit-ratio",
+    "redis",
+    "lru",
+    "singleflight",
+    "key generation"
   ],
   "engines": {
     "node": ">=16"
@@ -63,7 +70,7 @@
     "jest": "29.5.0",
     "lint-staged": "10.5.4",
     "prettier": "2.2.1",
-    "release-it": "16.2.1",
+    "release-it": "^19.0.4",
     "ts-jest": "29.1.0",
     "ts-node": "10.9.1",
     "typedoc": "0.27.0",
