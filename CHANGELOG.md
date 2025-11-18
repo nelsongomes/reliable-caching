@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Added
 
 - Bugfix for RedisStorage get when JSON parse fails to return miss
+- Security fixes
 
 ## [0.1.4] - 2025-01-26
 
