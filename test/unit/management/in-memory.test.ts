@@ -269,4 +269,197 @@ describe("InMemoryManager", () => {
 
     inMemoryManager.close();
   });
+
+  it("Should handle storage.get errors gracefully in noConcurrencyFlow", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.xadd = jest.fn();
+
+    const storage = new LruInMemoryStorage({ max: 50 });
+    storage.get = jest.fn(() => {
+      throw new Error("Storage error");
+    });
+
+    const controller = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+      storage,
+    });
+
+    const inMemoryManager = new GenericManager(controller, storage, {
+      concurrency: ConcurrencyControl.None,
+    });
+
+    const operation = "costlyFunction";
+
+    const { cacheRetrieval } = inMemoryManager.getWrapperFunctions<
+      Parameters<typeof costlyFunction>,
+      ReturnType<typeof costlyFunction>
+    >(operation, 500, costlyFunction);
+
+    // Should still work despite storage.get error
+    const result = await cacheRetrieval("127", 3, 4);
+    expect(result).toBe(12);
+
+    inMemoryManager.close();
+  });
+
+  it("Should handle storage.get errors gracefully in localConcurrencyFlow", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.xadd = jest.fn();
+
+    const storage = new LruInMemoryStorage({ max: 50 });
+    storage.get = jest.fn(() => {
+      throw new Error("Storage error");
+    });
+
+    const controller = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+      storage,
+    });
+
+    const inMemoryManager = new GenericManager(controller, storage, {
+      concurrency: ConcurrencyControl.Local,
+    });
+
+    const operation = "costlyFunction";
+
+    const { cacheRetrieval } = inMemoryManager.getWrapperFunctions<
+      Parameters<typeof costlyFunction>,
+      ReturnType<typeof costlyFunction>
+    >(operation, 500, costlyFunction);
+
+    // Should still work despite storage.get error
+    const result = await cacheRetrieval("128", 3, 5);
+    expect(result).toBe(15);
+
+    inMemoryManager.close();
+  });
+
+  it("Should handle storage.set errors gracefully and continue", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.xadd = jest.fn();
+
+    const storage = new LruInMemoryStorage({ max: 50 });
+    storage.set = jest.fn(() => {
+      throw new Error("Storage set error");
+    });
+
+    const controller = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+      storage,
+    });
+
+    let logCalled = false;
+    const inMemoryManager = new GenericManager(controller, storage, {
+      concurrency: ConcurrencyControl.None,
+      log: () => {
+        logCalled = true;
+      },
+    });
+
+    const operation = "costlyFunction";
+
+    const { cacheRetrieval } = inMemoryManager.getWrapperFunctions<
+      Parameters<typeof costlyFunction>,
+      ReturnType<typeof costlyFunction>
+    >(operation, 500, costlyFunction);
+
+    // Should return value even if storage.set fails
+    const result = await cacheRetrieval("130", 5, 6);
+    expect(result).toBe(30);
+    expect(logCalled).toBe(true);
+
+    inMemoryManager.close();
+  });
+
+  it("Should handle broadcast errors gracefully", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.xadd = jest.fn(() => {
+      throw new Error("Broadcast error");
+    });
+
+    const storage = new LruInMemoryStorage({ max: 50 });
+
+    const controller = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+      storage,
+    });
+
+    let logCalled = false;
+    const inMemoryManager = new GenericManager(controller, storage, {
+      concurrency: ConcurrencyControl.None,
+      broadcast: true,
+      log: () => {
+        logCalled = true;
+      },
+    });
+
+    const operation = "costlyFunction";
+
+    const { cacheRetrieval } = inMemoryManager.getWrapperFunctions<
+      Parameters<typeof costlyFunction>,
+      ReturnType<typeof costlyFunction>
+    >(operation, 500, costlyFunction);
+
+    // Should return value even if broadcast fails
+    const result = await cacheRetrieval("131", 6, 7);
+    expect(result).toBe(42);
+    expect(logCalled).toBe(true);
+
+    inMemoryManager.close();
+  });
+
+  it("Should not broadcast when broadcast option is false", async () => {
+    const redis = new Redis();
+    redis.duplicate = jest.fn(() => {
+      return redis;
+    });
+    redis.xadd = jest.fn();
+
+    const storage = new LruInMemoryStorage({ max: 50 });
+
+    const controller = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+      storage,
+    });
+
+    const inMemoryManager = new GenericManager(controller, storage, {
+      concurrency: ConcurrencyControl.None,
+      broadcast: false,
+    });
+
+    const operation = "costlyFunction";
+
+    const { cacheRetrieval } = inMemoryManager.getWrapperFunctions<
+      Parameters<typeof costlyFunction>,
+      ReturnType<typeof costlyFunction>
+    >(operation, 500, costlyFunction);
+
+    const result = await cacheRetrieval("132", 7, 8);
+    expect(result).toBe(56);
+    expect(redis.xadd).not.toHaveBeenCalled();
+
+    inMemoryManager.close();
+  });
 });

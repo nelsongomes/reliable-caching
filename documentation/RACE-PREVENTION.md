@@ -14,8 +14,8 @@ In the example below, we are focusing on per instance race prevention, meaning y
 
 - [Declaring your operation](#declaring-your-operation)
 - [Wrap you original function](#wrap-you-original-function)
-- [Wrap with extra safety](#wrap-secure)
-- [Test it yourself](#verifying-url-request)
+- [Wrap with extra safety](#wrap-with-extra-safety)
+- [Test it yourself](#test-it-yourself)
 
 <!-- prettier-ignore-end -->
 

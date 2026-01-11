@@ -17,10 +17,19 @@ import {
 jest.mock("ioredis");
 
 describe("RedisCacheController", () => {
+  let controllers: RedisCacheController[] = [];
+
   beforeEach(() => {
     // Clear all instances and calls to constructor and all methods:
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (Redis as any).mockClear();
+    controllers = [];
+  });
+
+  afterEach(async () => {
+    // Clean up all controller instances to prevent hanging processes
+    await Promise.all(controllers.map((controller) => controller.close()));
+    controllers = [];
   });
 
   it("Should duplicate redis instance and start listening for messages", async () => {
@@ -29,7 +38,12 @@ describe("RedisCacheController", () => {
       return redis;
     });
 
-    new RedisCacheController({ streamId: "stream", redis, check: () => false });
+    const controller = new RedisCacheController({
+      streamId: "stream",
+      redis,
+      check: () => false,
+    });
+    controllers.push(controller);
 
     // we duplicate redis instance to have one connection reading messages and another publishing
     expect(redis.duplicate).toBeCalled();
@@ -48,6 +62,7 @@ describe("RedisCacheController", () => {
       redis,
       check: () => false,
     });
+    controllers.push(cacheController);
 
     // storing promise, putting it running in bg
     const requestPromise = cacheController.requestCacheStats(); // no await on purpose, for not blocking
@@ -72,6 +87,7 @@ describe("RedisCacheController", () => {
       redis,
       check: () => false,
     });
+    controllers.push(cacheController);
 
     const second = await cacheController.requestCacheStats(0);
 
@@ -103,6 +119,7 @@ describe("RedisCacheController", () => {
       redis,
       check: () => false,
     });
+    controllers.push(cacheController);
 
     await cacheController.listenForMessage(() => false);
 
@@ -139,6 +156,7 @@ describe("RedisCacheController", () => {
       redis,
       check: () => false,
     });
+    controllers.push(cacheController);
 
     // this initializes combine manager
     await cacheController.requestCacheStats(3000);
@@ -172,6 +190,7 @@ describe("RedisCacheController", () => {
       redis,
       check: () => false,
     });
+    controllers.push(cacheController);
 
     await cacheController.listenForMessage(() => false);
 
@@ -204,6 +223,7 @@ describe("RedisCacheController", () => {
       check: () => false,
       storage,
     });
+    controllers.push(cacheController);
 
     await cacheController.listenForMessage(() => false);
 
@@ -222,6 +242,7 @@ describe("RedisCacheController", () => {
       redis,
       check: () => false,
     });
+    controllers.push(cacheController);
 
     await cacheController.broadcastCacheKey("evictme", 100, { value: 123 });
 
@@ -247,6 +268,7 @@ describe("RedisCacheController", () => {
       redis,
       check: () => false,
     });
+    controllers.push(cacheController);
 
     await cacheController.broadcastCacheKey("evictme", 100, { value: 123 });
 
@@ -284,6 +306,7 @@ describe("RedisCacheController", () => {
       check: () => false,
       storage,
     });
+    controllers.push(cacheController);
 
     await cacheController.listenForMessage(() => false);
 
@@ -317,6 +340,7 @@ describe("RedisCacheController", () => {
       check: () => false,
       storage,
     });
+    controllers.push(cacheController);
 
     await cacheController.listenForMessage(() => false);
 
@@ -350,6 +374,7 @@ describe("RedisCacheController", () => {
       check: () => false,
       storage,
     });
+    controllers.push(cacheController);
 
     const operationRegistry = new OperationRegistry("operation");
     cacheController.setRegistry("operation", operationRegistry);
@@ -389,6 +414,7 @@ describe("RedisCacheController", () => {
       check: () => false,
       storage,
     });
+    controllers.push(cacheController);
 
     await cacheController.listenForMessage(() => false);
 
@@ -424,6 +450,7 @@ describe("RedisCacheController", () => {
       check: () => false,
       storage,
     });
+    controllers.push(cacheController);
     const unlockCalling = jest.fn() as any;
 
     // create an artificial lock (this instance is executing the operation)
@@ -473,6 +500,7 @@ describe("RedisCacheController", () => {
       check: () => false,
       storage,
     });
+    controllers.push(cacheController);
 
     const operationRegistry = new OperationRegistry("operation");
     cacheController.setRegistry("operation", operationRegistry);
@@ -494,6 +522,7 @@ describe("RedisCacheController", () => {
       redis,
       check: () => false,
     });
+    controllers.push(cacheController);
 
     await cacheController.requestCacheKeyEviction("evictme");
 
@@ -521,6 +550,7 @@ describe("RedisCacheController", () => {
       redis,
       check: () => false,
     });
+    controllers.push(cacheController);
 
     await cacheController.requestCacheKeyEviction("evictme");
 
@@ -548,6 +578,7 @@ describe("RedisCacheController", () => {
       redis,
       check: () => false,
     });
+    controllers.push(cacheController);
 
     await cacheController.requestOperationStart("operation", "key");
 
@@ -575,6 +606,7 @@ describe("RedisCacheController", () => {
       redis,
       check: () => false,
     });
+    controllers.push(cacheController);
 
     await cacheController.requestOperationEnd(
       "operation",
@@ -616,6 +648,7 @@ describe("RedisCacheController", () => {
       redis,
       check: () => false,
     });
+    controllers.push(cacheController);
 
     const { lockResult, unlockFunction } = await cacheController.lock(
       "key",
@@ -646,6 +679,7 @@ describe("RedisCacheController", () => {
       redis,
       check: () => false,
     });
+    controllers.push(cacheController);
 
     const { lockResult, unlockFunction } = await cacheController.lock(
       "key",
@@ -676,6 +710,7 @@ describe("RedisCacheController", () => {
       redis,
       check: () => false,
     });
+    controllers.push(cacheController);
 
     const { lockResult, unlockFunction } = await cacheController.lock(
       "key",
@@ -698,6 +733,7 @@ describe("RedisCacheController", () => {
       redis,
       check: () => false,
     });
+    controllers.push(cacheController);
 
     await cacheController.unlock("key");
 
@@ -716,6 +752,7 @@ describe("RedisCacheController", () => {
       redis,
       check: () => false,
     });
+    controllers.push(cacheController);
 
     await cacheController.close();
 
@@ -733,6 +770,7 @@ describe("RedisCacheController", () => {
       redis,
       check: () => false,
     });
+    controllers.push(cacheController);
 
     const promise = await cacheController.getOperationPromise<string>(
       "operation",
@@ -753,6 +791,7 @@ describe("RedisCacheController", () => {
       redis,
       check: () => false,
     });
+    controllers.push(cacheController);
 
     const operationRegistry = new OperationRegistry("operation");
     const key = "key";

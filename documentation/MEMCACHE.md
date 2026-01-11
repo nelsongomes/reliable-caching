@@ -1,13 +1,13 @@
-# Redis Storage
+# Memcache Storage
 
-This provides RedisStorage class which implements ICacheStorage interface. Interface was designed specifically for handling cache requests, namely:
+This provides MemcacheStorage class which implements ICacheStorage interface. Interface was designed specifically for handling cache requests, namely:
 
 - to store content with a key
 - to retrieve content by a key
 - to evict content by a key
 - to make **retrieved content immutable** in cases it might be shared across multiple consumers (useful for singleflight pattern) preventing cache from being tainted. Making content immutable on retrieval only makes sense for cache servers when we retrieve data stored externally.
 - to make **stored content immutable** in cases it might be shared across multiple consumers preventing cache from being tainted. Making content immutable on storage only makes sense for in memory caching.
-- to sign content and verify content signature, for data stored externally, if key references a signature ID, it will append a signature automatically and discarded any content failling it's signature, preventing cache poisoning if your Redis server gets tampered with.
+- to sign content and verify content signature, for data stored externally, if key references a signature ID, it will append a signature automatically and discarded any content failling it's signature, preventing cache poisoning if your Memcache server gets tampered with.
 
 ## Table of Contents
 
@@ -21,41 +21,43 @@ This provides RedisStorage class which implements ICacheStorage interface. Inter
 
 ## Storing content and retrieving content
 
-RedisStorage provides a 'set' function which has the following arguments: key, TTL in milliseconds and a value, optionally you can send a boolean to make content immutable, and 'get' function which has the following arguments: key,optionally you can send a boolean to make content immutable.
+MemcacheStorage provides a 'set' function which has the following arguments: key, TTL in milliseconds and a value, optionally you can send a boolean to make content immutable, and 'get' function which has the following arguments: key,optionally you can send a boolean to make content immutable.
 
 ```ts
-// ioredis package
-const redis = new Redis({ host: "localhost", port: 6379 });
-const redisStorage = new RedisStorage(redis);
+// memjs package
+import * as memjs from "memjs";
+const client = memjs.Client.create();
+const memcacheStorage = new MemcacheStorage(client);
 
 // if you set immutability to true, 4th argument, it will throw an exception because it cannot be guaranteed when storing.
-await redisStorage.set("abc", 10000, "test");
+await memcacheStorage.set("abc", 10000, "test");
 
 // if you set immutability to true, 2nd argument, it freezes the object making sure it cannot be tainted (it will throw exception on runtime, so test it througly), this way it cannot be changed by multiple threads.
-console.log(await redisStorage.get("abc"));
+console.log(await memcacheStorage.get("abc"));
 
-redis.disconnect();
+client.close();
 ```
 
 ## Evicting content
 
-RedisStorage provides an 'evict' function which will drop content for a given cache key.
+MemcacheStorage provides an 'evict' function which will drop content for a given cache key.
 
 ```ts
-const redis = new Redis({ host: "localhost", port: 6379 });
-const redisStorage = new RedisStorage(redis);
+import * as memjs from "memjs";
+const client = memjs.Client.create();
+const memcacheStorage = new MemcacheStorage(client);
 
-await redisStorage.set("abc", 10000, "test");
+await memcacheStorage.set("abc", 10000, "test");
 
 // drop cache content
-await redisStorage.evict("abc");
+await memcacheStorage.evict("abc");
 
-redis.disconnect();
+client.close();
 ```
 
 ## Signing content
 
-RedisStorage will automatically sign your cached content if your cache key contains reference for a signing key. Signing key needs to be declared once and if cache signature fails, it will automatically handle it as a cache miss.
+MemcacheStorage will automatically sign your cached content if your cache key contains reference for a signing key. Signing key needs to be declared once and if cache signature fails, it will automatically handle it as a cache miss.
 
 ```ts
 // initialization stage (once)
@@ -65,12 +67,12 @@ const cacheKeyFn = KeyGenerator.keyFactory<{
   operation: "getCustomer",
   signingKeyId: "myPrivateKey",
 });
-const redis = new Redis({ host: "localhost", port: 6379 });
-const redisStorage = new RedisStorage(redis);
+const client = memjs.Client.create();
+const memcacheStorage = new MemcacheStorage(client);
 
 // runtime code
 const cacheKey = cacheKeyFn({ id: 123 });
-await redisStorage.set<myContent>(cacheKey, 100000, {
+await memcacheStorage.set<myContent>(cacheKey, 100000, {
   id: 123,
   test: "test",
 });
@@ -78,7 +80,7 @@ await redisStorage.set<myContent>(cacheKey, 100000, {
 // now you have 10s to change cache content
 await delay(10000);
 
-const cacheContent = await redisStorage.get<myContent>(cacheKey);
+const cacheContent = await memcacheStorage.get<myContent>(cacheKey);
 
 if (cacheContent) {
   // if content exists and signature is valid, cache content is returned
@@ -89,7 +91,7 @@ if (cacheContent) {
   );
 }
 
-redis.disconnect();
+client.close();
 ```
 
 ### Visit the [GitHub Repo](https://github.com/nelsongomes/reliable-caching/) tutorials, documentation, and support

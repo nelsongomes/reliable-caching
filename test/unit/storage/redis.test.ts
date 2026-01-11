@@ -9,8 +9,17 @@ import {
 } from "../../../src";
 
 describe("Redis", () => {
+  const redisInstances: Redis[] = [];
+
+  afterEach(async () => {
+    // Close all Redis instances to prevent hanging
+    await Promise.all(redisInstances.map((redis) => redis.disconnect()));
+    redisInstances.length = 0;
+  });
+
   it("Creates a redis cache storage and sets a key", async () => {
     const redis = new Redis();
+    redisInstances.push(redis);
     redis.set = jest.fn<Promise<"OK">, [string, string]>(() => {
       return Promise.resolve("OK");
     });
@@ -24,6 +33,7 @@ describe("Redis", () => {
 
   it("Should throw an error if setting a key with immutable true", async () => {
     const redis = new Redis();
+    redisInstances.push(redis);
     redis.set = jest.fn<Promise<"OK">, [string, string]>(() => {
       return Promise.resolve("OK");
     });
@@ -37,6 +47,7 @@ describe("Redis", () => {
 
   it("Should sign content if key contains a signing key, when storing content", async () => {
     const redis = new Redis();
+    redisInstances.push(redis);
     redis.set = jest.fn<Promise<"OK">, [string, string]>(() => {
       return Promise.resolve("OK");
     });
@@ -70,6 +81,7 @@ describe("Redis", () => {
       JSON.stringify(content);
 
     const redis = new Redis();
+    redisInstances.push(redis);
     redis.get = jest.fn<Promise<string | null>, [string]>(() => {
       return Promise.resolve(signedContent);
     });
@@ -97,6 +109,7 @@ describe("Redis", () => {
     const serializedContent = JSON.stringify(content).substring(10);
 
     const redis = new Redis();
+    redisInstances.push(redis);
     redis.get = jest.fn<Promise<string | null>, [string]>(() => {
       return Promise.resolve(serializedContent);
     });
@@ -126,6 +139,7 @@ describe("Redis", () => {
       "bad signature" + SIGNATURE_SEPARATOR + JSON.stringify(content);
 
     const redis = new Redis();
+    redisInstances.push(redis);
     redis.get = jest.fn<Promise<string | null>, [string]>(() => {
       return Promise.resolve(signedContent);
     });
@@ -152,6 +166,7 @@ describe("Redis", () => {
     const content: StorageWrapper<string> = { value: "value" };
 
     const redis = new Redis();
+    redisInstances.push(redis);
     redis.get = jest.fn<Promise<string | null>, [string]>(() => {
       return Promise.resolve(JSON.stringify(content));
     });
@@ -167,6 +182,7 @@ describe("Redis", () => {
     const content: StorageWrapper<string> = { value: "value" };
 
     const redis = new Redis();
+    redisInstances.push(redis);
     redis.get = jest.fn<Promise<string | null>, [string]>(() => {
       return Promise.resolve(JSON.stringify(content));
     });
@@ -180,7 +196,8 @@ describe("Redis", () => {
 
   it("Deletes a key from redis cache storage", async () => {
     const redis = new Redis();
-    redis.del = jest.fn((...args: any[]) => {
+    redisInstances.push(redis);
+    redis.del = jest.fn(() => {
       return Promise.resolve(1);
     });
 
