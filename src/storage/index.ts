@@ -1,6 +1,7 @@
 export * from "./redis";
 export * from "./lru-in-memory";
 export * from "./memcache";
+export * from "./hazelcast";
 
 export const SIGNATURE_SEPARATOR = ":";
 

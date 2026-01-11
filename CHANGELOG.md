@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Added HazelcastStorage implementation with support for cache signing and immutability
+- Added Hazelcast documentation and sample implementations
+
 ## [0.1.6] - 2026-01-11
 
 ### Added
