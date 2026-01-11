@@ -2,7 +2,7 @@
 
 [![npm](https://img.shields.io/npm/v/reliable-caching.svg)](https://www.npmjs.com/package/reliable-caching)
 
-This package provides functionality for cache key generation, URL signing for cache poisoning prevention, cache signing, singleflight pattern to prevent resource stampeed (single instance and distributed) and also cache benchmarking (single instance and distributed).
+This package provides functionality for cache key generation, URL signing for cache poisoning prevention, cache signing, singleflight pattern to prevent resource stampede (single instance and distributed) and also cache benchmarking (single instance and distributed).
 
 These ideas are being compiled into a book focused mainly on reliable caching for node.
 
@@ -10,11 +10,14 @@ These ideas are being compiled into a book focused mainly on reliable caching fo
 
 <!-- prettier-ignore-start -->
 
-- [Instalation](#instalation)
+- [Installation](#installation)
 - [Documentation](#documentation)
 	- [Key Generation](documentation/KEY-GENERATION.md)
 	- [URL Signing](documentation/URL-SIGN.md)
-	- [Cache Storage Implementations](#storage-implementations)
+	- [Reliable Cache Implementations](#storage-implementations)
+		- [In Memory LRU](documentation/LRU.md)
+		- [Redis](documentation/REDIS.md)
+		- [Memcache](documentation/MEMCACHE.md)
 	- [Cache Signing](documentation/CACHE-SIGN.md)
 	- [Cache Benchmarking (single instance)](documentation/CACHE-BENCH.md)
 	- [Cache Benchmarking (distributed)](documentation/CACHE-BENCH-DIST.md)
@@ -30,18 +33,15 @@ Using npm:
 
 ## Storage Implementations
 
-All implemententations below handle things like, immutability of cache objects (important for not alter cache content), handle deserialization errors (handled as a miss), signature failures (handled as a miss) making code more robust than those quickly made hacks developers do.
+All implementations below handle things like immutability of cache objects (important to not alter cache content), handle deserialization errors (handled as a miss), and signature failures (handled as a miss), making code more robust than those quickly made hacks developers do.
 
 - [In Memory LRU](documentation/LRU.md) provides object immutability, no cache signature
 - [Redis](documentation/REDIS.md) provides object immutability, cache signature
-
-Using npm:
-`npm i --save reliable-caching`
+- [Memcache](documentation/MEMCACHE.md) provides object immutability, cache signature
 
 ## Articles
 
-- [Drop hit ratio as cache measure, now!](https://medium.com/pipedrive-engineering/drop-hit-ratio-as-cache-measure-now-98970238dbbf)<br/>
-- [Resource optimization in Node.js](https://medium.com/pipedrive-engineering/resource-optimization-in-node-js-c90c731f9df4)<br/>
-- [Resource optimization in Node.js](https://medium.com/pipedrive-engineering/resource-optimization-in-node-js-c90c731f9df4)<br/>
+- [Drop hit ratio as cache measure, now!](https://medium.com/pipedrive-engineering/drop-hit-ratio-as-cache-measure-now-98970238dbbf)
+- [Resource optimization in Node.js](https://medium.com/pipedrive-engineering/resource-optimization-in-node-js-c90c731f9df4)
 
 ### Visit the [GitHub Repo](https://github.com/nelsongomes/reliable-caching/) tutorials, documentation, and support

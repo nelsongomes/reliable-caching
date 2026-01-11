@@ -11,7 +11,7 @@ Also, keep in mind, that signing will make your application more secure, but cac
 <!-- prettier-ignore-start -->
 
 - [Declaring your keys](#declaring-your-keys)
-- [Create a cacke key function](#create-a-cache-key-function)
+- [Create a cache key function](#create-a-cache-key-function)
 - [Generating signed content](#generating-signed-content)
 - [Retrieving signed content](#retrieving-signed-content)
 
@@ -66,34 +66,9 @@ const storedContent = {
 await storeIt(key, storedContent); // your store function
 ```
 
-## Generating signed content
-
-This example signs content that goes into cache with a signature. This is a generic example that requires you to implement your store function.
-
-```ts
-const stringifiedContent = JSON.stringify({
-  productId: 123,
-  name: "Product Name",
-});
-
-// generate cache key
-const key = signedProductByIdKey({ productId: 123 });
-
-// sign content
-const signature = SignManager.signContent(stringifiedContent, "myPrivateKey");
-
-// now store content and signature
-const storedContent = {
-  signature, // even if signature is changed it will never match due to secret that was incorporated into hash
-  content: stringifiedContent,
-};
-
-await storeIt(key, storedContent); // your store function
-```
-
 ## Retrieving signed content
 
-This example validates content retrived from cache. This is a generic example that requires you to implement your store function.
+This example validates content retrieved from cache. This is a generic example that requires you to implement your store function.
 
 ```ts
 // generate cache key

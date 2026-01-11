@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.6] - 2026-01-11
+
+### Added
+
+- Added MemcacheStorage implementation with support for cache signing and immutability
+- Added Memcache documentation and sample implementations
+
+### Fixed
+
+- Fixed Jest worker process hanging due to unclosed Redis and Memcache connections in tests
+- Added proper cleanup (afterEach hooks) to disconnect Redis instances and close Memcache clients after each test
+- Fixed unused variable warning in redis.test.ts
+
 ## [0.1.5] - 2025-11-18
 
 ### Added
@@ -52,7 +65,8 @@ When fixing merge conflicts below, make sure you do it correctly.
 Top line must have "unreleased" label and range from latest version to HEAD.
 --->
 <!-- prettier-ignore -->
-[Unreleased]: https://github.com/nelsongomes/reliable-caching/compare/v0.1.5...HEAD
+[Unreleased]: https://github.com/nelsongomes/reliable-caching/compare/v0.1.6...HEAD
+[0.1.6]: https://github.com/nelsongomes/reliable-caching/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/nelsongomes/reliable-caching/compare/v0.1.4...v0.1.5
 [0.1.4]: https://github.com/nelsongomes/reliable-caching/compare/v0.1.3...v0.1.4
 [0.1.3]: https://github.com/nelsongomes/reliable-caching/compare/v0.1.2...v0.1.3

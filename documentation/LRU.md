@@ -15,7 +15,7 @@ This provides LruInMemoryStorage class which implements ICacheStorage interface.
 
 - [Storing content and retrieving content](#storing-content-and-retrieving-content)
 - [Evicting content](#evicting-content)
-- [Signing content]()
+- [Signing content](#signing-content)
 
 <!-- prettier-ignore-end -->
 
