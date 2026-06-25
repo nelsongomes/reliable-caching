@@ -25,7 +25,7 @@ async function main() {
       // if we try to change the content, we should get an error
 
       cacheContent.test = "test2";
-    } catch (error) {
+    } catch {
       console.log("Data is immutable, so we cannot change it");
     }
   }

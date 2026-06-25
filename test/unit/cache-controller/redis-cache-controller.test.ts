@@ -21,7 +21,7 @@ describe("RedisCacheController", () => {
 
   beforeEach(() => {
     // Clear all instances and calls to constructor and all methods:
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
     (Redis as any).mockClear();
     controllers = [];
   });
@@ -107,7 +107,6 @@ describe("RedisCacheController", () => {
       };
 
       return [["stream", [["id", ["?", JSON.stringify(request)]]]]];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any;
 
     // generate some data
@@ -148,7 +147,6 @@ describe("RedisCacheController", () => {
       };
 
       return [["stream", [["id", ["?", JSON.stringify(request)]]]]];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any;
 
     const cacheController = new RedisCacheController({
@@ -182,7 +180,6 @@ describe("RedisCacheController", () => {
       };
 
       return [["stream", [["id", ["?", JSON.stringify(request)]]]]];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any;
 
     const cacheController = new RedisCacheController({
@@ -213,7 +210,6 @@ describe("RedisCacheController", () => {
       };
 
       return [["stream", [["id", ["?", JSON.stringify(request)]]]]];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any;
 
     const storage = new LruInMemoryStorage({ max: 50 });
@@ -296,7 +292,6 @@ describe("RedisCacheController", () => {
       };
 
       return [["stream", [["id", ["?", JSON.stringify(request)]]]]];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any;
 
     const storage = new LruInMemoryStorage({ max: 50 });
@@ -330,7 +325,6 @@ describe("RedisCacheController", () => {
       };
 
       return [["stream", [["id", ["?", JSON.stringify(request)]]]]];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any;
 
     const storage = new LruInMemoryStorage({ max: 50 });
@@ -364,7 +358,6 @@ describe("RedisCacheController", () => {
       };
 
       return [["stream", [["id", ["?", JSON.stringify(request)]]]]];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any;
 
     const storage = new LruInMemoryStorage({ max: 50 });
@@ -404,7 +397,6 @@ describe("RedisCacheController", () => {
       };
 
       return [["stream", [["id", ["?", JSON.stringify(request)]]]]];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any;
 
     const storage = new LruInMemoryStorage({ max: 50 });
@@ -440,7 +432,6 @@ describe("RedisCacheController", () => {
       };
 
       return [["stream", [["id", ["?", JSON.stringify(request)]]]]];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any;
 
     const storage = new LruInMemoryStorage({ max: 50 });
@@ -490,7 +481,6 @@ describe("RedisCacheController", () => {
       };
 
       return [["stream", [["id", ["?", JSON.stringify(request)]]]]];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any;
 
     const storage = new LruInMemoryStorage({ max: 50 });

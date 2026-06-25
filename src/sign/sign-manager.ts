@@ -131,7 +131,7 @@ export class SignManager {
         rks,
         true
       );
-    } catch (e) {
+    } catch {
       return false;
     }
   }

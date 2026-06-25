@@ -1,22 +1,22 @@
-import Redis from "ioredis";
+import { IMap } from "hazelcast-client";
 import { SignManager } from "../sign";
 import { SIGNATURE_SEPARATOR, StorageWrapper, deepFreeze } from ".";
 import { ICacheStorage } from "./storage-interface";
 
 /**
- * Redis cache storage (implements cache signatures)
- * All items are stored in redis and are immutable after retrieval
+ * Hazelcast cache storage (implements cache signatures)
+ * All items are stored in Hazelcast distributed map and are immutable after retrieval
  * because they might be shared between threads to prevent data corruption
  */
-export class RedisStorage implements ICacheStorage {
-  private cache: Redis;
+export class HazelcastStorage implements ICacheStorage {
+  private cache: IMap<string, string>;
 
   /**
-   * Create a wrapper class for ioredis package
-   * @param redisInstance ioredis instance
+   * Create a wrapper class for Hazelcast IMap
+   * @param hazelcastMap Hazelcast IMap instance
    */
-  constructor(redisInstance: Redis) {
-    this.cache = redisInstance;
+  constructor(hazelcastMap: IMap<string, string>) {
+    this.cache = hazelcastMap;
   }
 
   /**
@@ -25,7 +25,7 @@ export class RedisStorage implements ICacheStorage {
    * @returns
    */
   async get<T>(key: string, immutable?: boolean): Promise<T | undefined> {
-    let cachedContent: string | null = await this.cache.get(key);
+    let cachedContent: string | null | undefined = await this.cache.get(key);
 
     if (cachedContent) {
       const signingKey = SignManager.obtainKey(key);
@@ -93,16 +93,16 @@ export class RedisStorage implements ICacheStorage {
       content = signature + SIGNATURE_SEPARATOR + content;
     }
 
-    // this forces in memory object not to be changed
-    await this.cache.set(key, content, "PX", ttlMilliseconds);
+    // Hazelcast set with TTL
+    await this.cache.set(key, content, ttlMilliseconds);
   }
 
   /**
-   *
+   * Evict cache key
    * @param key
-   * @returnsv Promise<void>
+   * @returns Promise<void>
    */
   async evict(key: string): Promise<void> {
-    await this.cache.del(key);
+    await this.cache.delete(key);
   }
 }

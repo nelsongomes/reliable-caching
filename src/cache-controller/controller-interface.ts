@@ -82,7 +82,7 @@ export interface ICacheController {
    * @param ttlMilliseconds cache TTL milliseconds
    * @param cacheContent content to store
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   broadcastCacheKey(
     key: string,
     ttlMilliseconds: number,

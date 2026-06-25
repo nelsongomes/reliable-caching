@@ -211,6 +211,7 @@ export class GenericManager implements IManagement {
     return value;
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async localConcurrencyFlow<R, P extends any[]>(
     {
       operation,
@@ -273,6 +274,7 @@ export class GenericManager implements IManagement {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async distributedConcurrencyFlow<R, P extends any[]>(
     {
       operation,

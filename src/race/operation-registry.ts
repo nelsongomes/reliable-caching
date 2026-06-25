@@ -23,7 +23,6 @@ export class OperationRegistry {
   }
 
   public triggerAwaitingResolves<T = any>(key: string, value: T): void {
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     let promises: any[] = this.operationRegistry.get(key)!;
 
     // we reset promises for next iteration
@@ -46,7 +45,6 @@ export class OperationRegistry {
   public triggerAwaitingRejects<T = Error>(key: string, error: T): void {
     const parsedError = normalizeError(error);
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     let promises: any[] = this.operationRegistry.get(key)!;
 
     // we reset promises for next iteration
@@ -68,7 +66,6 @@ export class OperationRegistry {
     // initialize registry for key, not existent
     this.initKey(key);
 
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     const keyRegistry = this.operationRegistry.get(key)!;
 
     if (keyRegistry.length === 0) {
@@ -80,7 +77,6 @@ export class OperationRegistry {
         const startCacheAwait = now();
 
         keyRegistry.push([
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           (value: any) => {
             CacheStatsManager.miss(
               this.operation,

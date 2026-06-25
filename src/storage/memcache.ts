@@ -58,7 +58,7 @@ export class MemcacheStorage implements ICacheStorage {
         }
 
         return wrapper?.value;
-      } catch (e) {
+      } catch {
         // treat JSON parse error as cache miss
         return undefined;
       }

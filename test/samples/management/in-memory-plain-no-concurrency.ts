@@ -12,10 +12,13 @@ import {
 // our storage is local in memory based on lru-cache package
 const storage = new LruInMemoryStorage({ max: 50 });
 
+// Create Redis instance that we'll need to close later
+const redis = new Redis();
+
 // our cache controller mechanism is based on Redis Streams
 const controller = new RedisCacheController({
   streamId: "stream",
-  redis: new Redis(),
+  redis,
   check: () => true, // sync it with your application healthcheck
   storage,
 });
@@ -67,6 +70,8 @@ async function main() {
   }
 
   await inMemoryManager.close();
+  redis.disconnect();
+  console.log("All connections closed");
 }
 
 main();

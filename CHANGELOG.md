@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-06-25
+
+### Added
+
+- Added HazelcastStorage implementation with support for cache signing and immutability
+- Added Hazelcast documentation and sample implementations
+
+### Changed
+
+- Updated Node.js engine requirement to support Node 24 (>=18 <25)
+- Updated all dev dependencies to latest versions for security and compatibility:
+  - eslint: 7.25.0 → 10.5.0 (migrated to FlatConfig system with eslint.config.js)
+  - @typescript-eslint/eslint-plugin: 4.22.1 → 8.62.0
+  - @typescript-eslint/parser: 4.22.1 → 8.62.0
+  - eslint-plugin-jest: 24.3.6 → 29.15.2
+  - lint-staged: 10.5.4 → 17.0.8
+  - jest: 29.5.0 → 29.7.0
+  - ts-jest: 29.1.0 → 29.4.11
+  - Removed deprecated .eslintrc.json and .eslintignore files
+
+### Fixed
+
+- Migrated ESLint configuration to v10 FlatConfig format (eslint.config.js)
+- Fixed unused catch variables in error handling across storage implementations
+- Fixed lexical declaration in case block (src/error.ts)
+- Removed unused variable assignments in cache stats calculation
+- Fixed type annotations and linting compliance issues
+- Added proper global environment setup for Node.js and Jest in ESLint configuration
+
+### Security
+
+- Fixed 44 security vulnerabilities through dependency updates and overrides
+- Resolved critical vulnerability in basic-ftp (Path Traversal)
+- Resolved high-severity ReDoS vulnerabilities in minimatch and picomatch
+- Resolved HTTP response queue poisoning and cookie handling vulnerabilities in undici
+- All known vulnerabilities are now patched
+
 ## [0.1.6] - 2026-01-11
 
 ### Added
@@ -65,7 +102,8 @@ When fixing merge conflicts below, make sure you do it correctly.
 Top line must have "unreleased" label and range from latest version to HEAD.
 --->
 <!-- prettier-ignore -->
-[Unreleased]: https://github.com/nelsongomes/reliable-caching/compare/v0.1.6...HEAD
+[Unreleased]: https://github.com/nelsongomes/reliable-caching/compare/v0.1.7...HEAD
+[0.1.7]: https://github.com/nelsongomes/reliable-caching/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/nelsongomes/reliable-caching/compare/v0.1.6...v0.1.6
 [0.1.6]: https://github.com/nelsongomes/reliable-caching/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/nelsongomes/reliable-caching/compare/v0.1.4...v0.1.5

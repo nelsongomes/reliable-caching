@@ -18,6 +18,7 @@ These ideas are being compiled into a book focused mainly on reliable caching fo
 		- [In Memory LRU](documentation/LRU.md)
 		- [Redis](documentation/REDIS.md)
 		- [Memcache](documentation/MEMCACHE.md)
+		- [Hazelcast](documentation/HAZELCAST.md)
 	- [Cache Signing](documentation/CACHE-SIGN.md)
 	- [Cache Benchmarking (single instance)](documentation/CACHE-BENCH.md)
 	- [Cache Benchmarking (distributed)](documentation/CACHE-BENCH-DIST.md)
@@ -38,6 +39,7 @@ All implementations below handle things like immutability of cache objects (impo
 - [In Memory LRU](documentation/LRU.md) provides object immutability, no cache signature
 - [Redis](documentation/REDIS.md) provides object immutability, cache signature
 - [Memcache](documentation/MEMCACHE.md) provides object immutability, cache signature
+- [Hazelcast](documentation/HAZELCAST.md) provides object immutability, cache signature
 
 ## Articles
 

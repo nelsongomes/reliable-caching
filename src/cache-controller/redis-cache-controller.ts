@@ -68,7 +68,7 @@ export class RedisCacheController implements ICacheController {
   async storeCacheKey(
     key: string,
     ttlMilliseconds: number,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     value: any
   ): Promise<void> {
     if (this.storage) {
@@ -90,7 +90,7 @@ export class RedisCacheController implements ICacheController {
         requester,
         data: {
           operation,
-          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+
           stats: CacheStatsManager.getOperationData(operation)!,
         },
       };
@@ -286,7 +286,6 @@ export class RedisCacheController implements ICacheController {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   async broadcastCacheKey(
     key: string,
     ttlMilliseconds: number,
@@ -330,7 +329,7 @@ export class RedisCacheController implements ICacheController {
   async requestOperationEnd(
     operation: string,
     key: string,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     data: any,
     error: boolean,
     unlock: Promise<void>

@@ -76,10 +76,6 @@ export class CacheStatsManager {
 
     if (stats) {
       const total = stats.hits + stats.misses;
-      let value = stats.hits * (stats.averageMissTime - stats.averageHitTime);
-      if (value < 0) {
-        value = 0;
-      }
 
       return {
         operation: operation,
