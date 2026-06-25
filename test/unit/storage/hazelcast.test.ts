@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import { IMap } from "hazelcast-client";
 import {
   HazelcastStorage,

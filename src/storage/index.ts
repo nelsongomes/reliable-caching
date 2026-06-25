@@ -10,7 +10,7 @@ export type StorageWrapper<T = any> = {
   value: T;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/explicit-module-boundary-types
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function deepFreeze(obj: any): any {
   if (typeof obj === "object" && obj !== null) {
     for (const key of Object.keys(obj)) {

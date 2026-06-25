@@ -12,6 +12,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added HazelcastStorage implementation with support for cache signing and immutability
 - Added Hazelcast documentation and sample implementations
 
+### Changed
+
+- Updated Node.js engine requirement to support Node 24 (>=18 <25)
+- Updated all dev dependencies to latest versions for security and compatibility:
+  - eslint: 7.25.0 → 10.5.0
+  - @typescript-eslint/eslint-plugin: 4.22.1 → 8.62.0
+  - @typescript-eslint/parser: 4.22.1 → 8.62.0
+  - eslint-plugin-jest: 24.3.6 → 29.15.2
+  - lint-staged: 10.5.4 → 17.0.8
+  - jest: 29.5.0 → 29.7.0
+  - ts-jest: 29.1.0 → 29.4.11
+
+### Security
+
+- Fixed 44 security vulnerabilities through dependency updates and overrides
+- Resolved critical vulnerability in basic-ftp (Path Traversal)
+- Resolved high-severity ReDoS vulnerabilities in minimatch and picomatch
+- Resolved HTTP response queue poisoning and cookie handling vulnerabilities in undici
+- All known vulnerabilities are now patched
+
 ## [0.1.6] - 2026-01-11
 
 ### Added

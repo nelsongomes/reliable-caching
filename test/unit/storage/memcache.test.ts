@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-non-null-assertion */
 import * as memjs from "memjs";
 import {
   KeyGenerator,
@@ -240,10 +239,8 @@ describe("Memcache", () => {
     await storage.set<string>("key", 5000, "value");
 
     // Check that the TTL was converted from 5000ms to 5 seconds
-    expect(setSpy).toHaveBeenCalledWith(
-      "key",
-      expect.any(String),
-      { expires: 5 }
-    );
+    expect(setSpy).toHaveBeenCalledWith("key", expect.any(String), {
+      expires: 5,
+    });
   });
 });
