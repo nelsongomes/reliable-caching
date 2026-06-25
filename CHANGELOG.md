@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.7] - 2026-06-25
+
 ### Added
 
 - Added HazelcastStorage implementation with support for cache signing and immutability
@@ -100,7 +102,8 @@ When fixing merge conflicts below, make sure you do it correctly.
 Top line must have "unreleased" label and range from latest version to HEAD.
 --->
 <!-- prettier-ignore -->
-[Unreleased]: https://github.com/nelsongomes/reliable-caching/compare/v0.1.6...HEAD
+[Unreleased]: https://github.com/nelsongomes/reliable-caching/compare/v0.1.7...HEAD
+[0.1.7]: https://github.com/nelsongomes/reliable-caching/compare/v0.1.6...v0.1.7
 [0.1.6]: https://github.com/nelsongomes/reliable-caching/compare/v0.1.6...v0.1.6
 [0.1.6]: https://github.com/nelsongomes/reliable-caching/compare/v0.1.5...v0.1.6
 [0.1.5]: https://github.com/nelsongomes/reliable-caching/compare/v0.1.4...v0.1.5
